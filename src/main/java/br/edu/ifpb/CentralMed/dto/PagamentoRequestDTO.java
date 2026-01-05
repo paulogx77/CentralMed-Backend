@@ -1,4 +1,9 @@
 package br.edu.ifpb.CentralMed.dto;
 
-public class PagamentoRequestDTO {
+import lombok.Data;
+import java.math.BigDecimal;
+@Data public class PagamentoRequestDTO {
+    private Long consultaId;
+    private BigDecimal valor;
+    private String formaPagamento;
 }
