@@ -17,6 +17,8 @@ public class AtendimentoService {
     @Autowired private ProfissionalRepository profissionalRepository;
     @Autowired private TriagemRepository triagemRepository;
 
+    // --- AGENDAMENTO E RECEPÇÃO ---
+
     // 1. Agendar Futuro
     public Agendamento criarAgendamentoFuturo(Agendamento ag) {
         ag.setStatus(StatusAgendamento.AGENDADO);
@@ -50,7 +52,39 @@ public class AtendimentoService {
         return agendamentoRepository.save(ag);
     }
 
-    // 4. Realizar Triagem (Enfermeiro)
+    // 4. Cancelar Agendamento (NOVO)
+    public void cancelarAgendamento(Long id) {
+        Agendamento ag = agendamentoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+        ag.setStatus(StatusAgendamento.CANCELADO);
+        agendamentoRepository.save(ag);
+    }
+
+    // 5. Chamar Paciente no Painel (NOVO)
+    public Agendamento chamarPacientePainel(Long id) {
+        // Retorna o agendamento para que o Controller possa notificar o Front/TV
+        return agendamentoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+    }
+
+    // --- GESTÃO DE PACIENTES ---
+
+    // 6. Atualizar Cadastro de Paciente (NOVO)
+    public Paciente atualizarPaciente(Long id, Paciente dadosNovos) {
+        Paciente p = pacienteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado"));
+
+        p.setNome(dadosNovos.getNome());
+        p.setConvenio(dadosNovos.getConvenio());
+        p.setAlergiasComorbidades(dadosNovos.getAlergiasComorbidades());
+        // CPF e Data de Nascimento geralmente não alteramos por aqui, mas pode adicionar se quiser
+
+        return pacienteRepository.save(p);
+    }
+
+    // --- TRIAGEM (ENFERMAGEM) ---
+
+    // 7. Realizar Triagem
     public Triagem realizarTriagem(Long agendamentoId, TriagemDTO dto) {
         Agendamento ag = agendamentoRepository.findById(agendamentoId).orElseThrow();
         Profissional enf = profissionalRepository.findById(dto.getEnfermeiroId()).orElseThrow();
@@ -73,6 +107,7 @@ public class AtendimentoService {
         return triagemRepository.save(t);
     }
 
+    // 8. Listar Filas
     public List<Agendamento> listarFila(StatusAgendamento status) {
         return agendamentoRepository.findByDataAndStatusOrderByHoraAsc(LocalDate.now(), status);
     }

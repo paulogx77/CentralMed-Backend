@@ -7,12 +7,10 @@ import br.edu.ifpb.CentralMed.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList; // <--- FALTAVA ESSE
-import java.util.List;      // <--- FALTAVA ESSE
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class MedicoService {
@@ -21,6 +19,8 @@ public class MedicoService {
     @Autowired private EstoqueRepository estoqueRepository;
     @Autowired private ConsumoInsumoRepository consumoRepository;
     @Autowired private TriagemRepository triagemRepository;
+
+    // --- Métodos Existentes ---
 
     public Triagem buscarDadosTriagem(Long agendamentoId) {
         return triagemRepository.findByAgendamentoId(agendamentoId);
@@ -49,11 +49,11 @@ public class MedicoService {
 
         // Baixa de Estoque
         if(dto.getInsumosConsumidos() != null && !dto.getInsumosConsumidos().isEmpty()) {
-            // Correção aqui: Uso do Diamond Operator <>
             List<ConsumoInsumo> listaConsumo = new ArrayList<>();
 
             for(InsumoRequestDTO item : dto.getInsumosConsumidos()) {
-                EstoqueInsumos insumoEstoque = estoqueRepository.findById(item.getInsumoId()).orElseThrow();
+                EstoqueInsumos insumoEstoque = estoqueRepository.findById(item.getInsumoId())
+                        .orElseThrow(() -> new RuntimeException("Insumo não encontrado"));
 
                 // Subtrai do estoque
                 insumoEstoque.setQtdeAtual(insumoEstoque.getQtdeAtual() - item.getQuantidade());
@@ -69,10 +69,39 @@ public class MedicoService {
             c.setInsumosConsumidos(listaConsumo);
         }
 
-        // Atualiza status do agendamento
         c.getAgendamento().setStatus(StatusAgendamento.FINALIZADO);
         agendamentoRepository.save(c.getAgendamento());
 
         return consultaRepository.save(c);
+    }
+
+    // --- NOVOS MÉTODOS (Para completar o Diagrama) ---
+
+    public List<Consulta> buscarHistoricoPaciente(Long pacienteId) {
+
+        return consultaRepository.findByAgendamentoPacienteIdAndAgendamentoStatusOrderByDataHoraInicioDesc(
+                pacienteId, StatusAgendamento.FINALIZADO
+        );
+    }
+
+    public String gerarTextoAtestado(Long consultaId, Integer diasAfastamento) {
+        Consulta c = consultaRepository.findById(consultaId)
+                .orElseThrow(() -> new RuntimeException("Consulta não encontrada"));
+
+        String paciente = c.getAgendamento().getPaciente().getNome();
+        String medico = c.getAgendamento().getMedico().getNome();
+        String crm = c.getAgendamento().getMedico().getCrmRegistro();
+
+        String data = c.getDataHoraFim() != null
+                ? c.getDataHoraFim().toLocalDate().toString()
+                : LocalDateTime.now().toLocalDate().toString();
+
+        return String.format(
+                "ATESTADO MÉDICO\n\n" +
+                        "Atesto para os devidos fins que o(a) Sr(a). %s foi atendido(a) por mim nesta data (%s) " +
+                        "e necessita de %d dias de afastamento de suas atividades laborais.\n\n" +
+                        "Dr. %s - CRM: %s",
+                paciente, data, diasAfastamento, medico, crm
+        );
     }
 }

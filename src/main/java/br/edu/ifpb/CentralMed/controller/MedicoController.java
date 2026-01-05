@@ -1,6 +1,5 @@
 package br.edu.ifpb.CentralMed.controller;
 
-
 import br.edu.ifpb.CentralMed.dto.FinalizarConsultaDTO;
 import br.edu.ifpb.CentralMed.model.*;
 import br.edu.ifpb.CentralMed.model.enums.StatusAgendamento;
@@ -16,13 +15,11 @@ public class MedicoController {
     @Autowired private AtendimentoService atendimentoService;
     @Autowired private MedicoService medicoService;
 
-    // Lista de pacientes que já passaram na Triagem
     @GetMapping("/fila")
     public List<Agendamento> getFilaConsulta() {
         return atendimentoService.listarFila(StatusAgendamento.AGUARDANDO_CONSULTA);
     }
 
-    // Pega dados da triagem para mostrar na tela do médico
     @GetMapping("/dados-triagem/{agendamentoId}")
     public Triagem getTriagem(@PathVariable Long agendamentoId) {
         return medicoService.buscarDadosTriagem(agendamentoId);
@@ -36,5 +33,15 @@ public class MedicoController {
     @PostMapping("/consulta/{consultaId}/finalizar")
     public Consulta finalizar(@PathVariable Long consultaId, @RequestBody FinalizarConsultaDTO dto) {
         return medicoService.finalizarConsulta(consultaId, dto);
+    }
+
+    @GetMapping("/historico/{pacienteId}")
+    public List<Consulta> getHistoricoPaciente(@PathVariable Long pacienteId) {
+        return medicoService.buscarHistoricoPaciente(pacienteId);
+    }
+
+    @GetMapping("/atestado/{consultaId}")
+    public String gerarAtestado(@PathVariable Long consultaId, @RequestParam Integer dias) {
+        return medicoService.gerarTextoAtestado(consultaId, dias);
     }
 }
