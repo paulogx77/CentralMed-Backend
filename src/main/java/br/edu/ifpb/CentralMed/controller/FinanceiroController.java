@@ -7,7 +7,8 @@ import br.edu.ifpb.CentralMed.repository.LancamentoFinanceiroRepository;
 import br.edu.ifpb.CentralMed.service.FinanceiroService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
+import br.edu.ifpb.CentralMed.model.Consulta;
+import br.edu.ifpb.CentralMed.repository.ConsultaRepository;
 import java.util.List; // Importe isso
 
 @RestController
@@ -16,6 +17,8 @@ public class FinanceiroController {
 
     @Autowired private FinanceiroService service;
     @Autowired private LancamentoFinanceiroRepository repository; // Injete o repository
+    @Autowired private ConsultaRepository consultaRepository; // Injete aqui
+
 
     @PostMapping("/pagar")
     public LancamentoFinanceiro pagar(@RequestBody PagamentoRequestDTO dto) {
@@ -26,5 +29,11 @@ public class FinanceiroController {
     @GetMapping
     public List<LancamentoFinanceiro> listarHistorico() {
         return repository.findAll();
+    }
+
+    // --- NOVO ENDPOINT ---
+    @GetMapping("/pendentes")
+    public List<Consulta> listarPendentes() {
+        return consultaRepository.findConsultasPendentesDePagamento();
     }
 }

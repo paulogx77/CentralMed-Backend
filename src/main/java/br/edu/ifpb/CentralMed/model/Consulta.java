@@ -20,7 +20,8 @@ public class Consulta {
     @OneToOne @JoinColumn(name = "agendamento_id")
     private Agendamento agendamento;
 
-    // Lista de materiais gastos
-    @OneToMany(mappedBy = "consulta", cascade = CascadeType.ALL)
+    // O segredo é o fetch = FetchType.EAGER
+    @OneToMany(mappedBy = "consulta", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<ConsumoInsumo> insumosConsumidos;
+
 }

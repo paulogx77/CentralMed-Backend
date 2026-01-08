@@ -77,10 +77,11 @@ public class MedicoService {
 
     // --- NOVOS MÉTODOS (Para completar o Diagrama) ---
 
-    public List<Consulta> buscarHistoricoPaciente(Long pacienteId) {
-
-        return consultaRepository.findByAgendamentoPacienteIdAndAgendamentoStatusOrderByDataHoraInicioDesc(
-                pacienteId, StatusAgendamento.FINALIZADO
+    public List<Consulta> getHistoricoPaciente(Long pacienteId) {
+        // Busca apenas as consultas que foram FINALIZADAS
+        return consultaRepository.buscarHistoricoDoPaciente(
+                pacienteId,
+                StatusAgendamento.FINALIZADO
         );
     }
 
