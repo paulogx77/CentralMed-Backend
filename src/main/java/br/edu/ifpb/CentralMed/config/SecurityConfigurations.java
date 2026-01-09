@@ -30,6 +30,7 @@ public class SecurityConfigurations {
                     // Login e Registro são públicos
                     req.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll();
+                    req.requestMatchers(HttpMethod.GET, "/api/admin/profissionais/**").authenticated();
 
                     // Libera OPTIONS para o Frontend não dar erro de CORS
                     req.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();

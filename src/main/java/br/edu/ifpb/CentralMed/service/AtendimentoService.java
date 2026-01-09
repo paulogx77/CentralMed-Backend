@@ -2,6 +2,7 @@ package br.edu.ifpb.CentralMed.service;
 
 import br.edu.ifpb.CentralMed.dto.*;
 import br.edu.ifpb.CentralMed.model.*;
+import br.edu.ifpb.CentralMed.model.enums.Prioridade;
 import br.edu.ifpb.CentralMed.model.enums.StatusAgendamento;
 import br.edu.ifpb.CentralMed.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +40,10 @@ public class AtendimentoService {
         ag.setData(LocalDate.now());
         ag.setHora(LocalTime.now());
         ag.setStatus(StatusAgendamento.AGUARDANDO_TRIAGEM);
-        ag.setSenhaPainel("SENHA-" + System.currentTimeMillis() % 1000); // Gera senha simples
+        ag.setSenhaPainel("SENHA-" + System.currentTimeMillis() % 1000);
+        if (dto.getPrioridade() != null) {
+            ag.setPrioridade(Prioridade.valueOf(dto.getPrioridade()));
+        }
 
         return agendamentoRepository.save(ag);
     }
@@ -109,6 +113,6 @@ public class AtendimentoService {
 
     // 8. Listar Filas
     public List<Agendamento> listarFila(StatusAgendamento status) {
-        return agendamentoRepository.findByDataAndStatusOrderByHoraAsc(LocalDate.now(), status);
+        return agendamentoRepository.findByDataAndStatusOrderByPrioridadeDescHoraAsc(LocalDate.now(), status);
     }
 }

@@ -4,4 +4,5 @@ import lombok.Data;
 @Data public class AgendamentoImediatoDTO {
     private Long pacienteId;
     private Long medicoId;
+    private String prioridade;
 }
