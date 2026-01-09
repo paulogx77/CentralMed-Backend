@@ -75,15 +75,19 @@ public class AtendimentoService {
 
     // 6. Atualizar Cadastro de Paciente (NOVO)
     public Paciente atualizarPaciente(Long id, Paciente dadosNovos) {
-        Paciente p = pacienteRepository.findById(id)
+        // 1. Busca o paciente no banco
+        Paciente pacienteExistente = pacienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado"));
 
-        p.setNome(dadosNovos.getNome());
-        p.setConvenio(dadosNovos.getConvenio());
-        p.setAlergiasComorbidades(dadosNovos.getAlergiasComorbidades());
-        // CPF e Data de Nascimento geralmente não alteramos por aqui, mas pode adicionar se quiser
+        // 2. Atualiza os dados
+        pacienteExistente.setNome(dadosNovos.getNome());
+        pacienteExistente.setCpf(dadosNovos.getCpf());
+        pacienteExistente.setDataNasc(dadosNovos.getDataNasc());
+        pacienteExistente.setConvenio(dadosNovos.getConvenio());
+        pacienteExistente.setAlergiasComorbidades(dadosNovos.getAlergiasComorbidades());
 
-        return pacienteRepository.save(p);
+        // 3. Salva as alterações
+        return pacienteRepository.save(pacienteExistente);
     }
 
     // --- TRIAGEM (ENFERMAGEM) ---

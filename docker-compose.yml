@@ -15,20 +15,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - centralmed-net
-
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: centralmed-pgadmin
-    restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@centralmed.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-    networks:
-      - centralmed-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U centralmed_user -d centralmed_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api:
     build: .
@@ -42,9 +33,11 @@ services:
       SPRING_DATASOURCE_PASSWORD: centralmed_password
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - centralmed-net
+
 
 volumes:
   postgres_data:
