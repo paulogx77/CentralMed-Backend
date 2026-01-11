@@ -1,6 +1,5 @@
 package br.edu.ifpb.CentralMed.config;
 
-
 import br.edu.ifpb.CentralMed.repository.ProfissionalRepository;
 import br.edu.ifpb.CentralMed.service.TokenService;
 import jakarta.servlet.FilterChain;
@@ -27,21 +26,33 @@ public class SecurityFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        String requestURI = request.getRequestURI();
+
+        // Pula o filtro para rotas públicas de autenticação
+        if (requestURI.startsWith("/api/auth/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         var token = recuperarToken(request);
 
         if (token != null) {
             var login = tokenService.validarToken(token);
-
             if (!login.isEmpty()) {
-                // CORREÇÃO AQUI: Removemos o .orElse(null)
+
+                // --- CORREÇÃO AQUI ---
+                // O repositório retorna UserDetails, não Optional.
+                // Verificamos se é nulo.
                 UserDetails usuario = repository.findByUsuarioLogin(login);
 
                 if (usuario != null) {
                     var authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
+                // ---------------------
             }
         }
+
         filterChain.doFilter(request, response);
     }
 

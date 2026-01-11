@@ -21,6 +21,22 @@ services:
       timeout: 5s
       retries: 5
 
+  # --- AQUI ESTÁ O QUE FALTAVA ---
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: centralmed-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@centralmed.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - centralmed-net
+  # -------------------------------
+
   api:
     build: .
     container_name: centralmed-api
@@ -37,7 +53,6 @@ services:
         condition: service_healthy
     networks:
       - centralmed-net
-
 
 volumes:
   postgres_data:
