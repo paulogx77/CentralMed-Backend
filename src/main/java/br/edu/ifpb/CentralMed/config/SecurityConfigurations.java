@@ -1,6 +1,5 @@
 package br.edu.ifpb.CentralMed.config;
 
-// ... (seus imports estão corretos)
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,47 +25,29 @@ public class SecurityConfigurations {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
+                // Habilita a configuração de CORS que definimos no WebConfig
                 .cors(Customizer.withDefaults())
+                // Desabilita proteção CSRF pois usaremos Tokens (Stateless)
                 .csrf(csrf -> csrf.disable())
+                // Configura a sessão como STATELESS: não guarda estado do usuário no servidor
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Define as regras de autorização para cada endpoint
                 .authorizeHttpRequests(req -> {
 
-                    // ===========================================
-                    // 1. ROTAS PÚBLICAS (NÃO PRECISA DE LOGIN)
-                    // ===========================================
-                    // Login e Registro podem ser acessados por todos
-                    req.requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll();
-                    // Documentação da API (se usar Swagger)
-                    req.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll();
+                    // 1. ROTAS PÚBLICAS (Acesso liberado sem login)
+                    req.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll();
+                    req.requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll();
 
-                    // ===========================================
-                    // 2. ROTAS DE ADMIN (SÓ ADMIN ACESSA)
-                    // ===========================================
-                    // Qualquer rota que comece com /api/admin/ só pode ser acessada por ADMIN
+                    // 2. ROTAS DE ADMIN (Acesso restrito apenas ao perfil ADMIN)
                     req.requestMatchers("/api/admin/**").hasRole("ADMIN");
+                    req.requestMatchers("/api/faturamento/**").hasRole("ADMIN");
 
-                    // ===========================================
-                    // 3. REGRAS MISTAS (Leitura vs. Escrita)
-                    // ===========================================
-                    // POST /api/convenios é restrito a ADMIN
-                    req.requestMatchers(HttpMethod.POST, "/api/convenios").hasRole("ADMIN");
-                    // GET /api/convenios é aberto para qualquer usuário logado
-                    req.requestMatchers(HttpMethod.GET, "/api/convenios").authenticated();
-
-                    // ===========================================
-                    // 4. OUTRAS ROTAS (Qualquer logado pode usar)
-                    // ===========================================
-                    req.requestMatchers("/api/recepcao/**").authenticated();
-                    req.requestMatchers("/api/estoque/**").authenticated();
-                    req.requestMatchers("/api/triagem/**").authenticated();
-                    req.requestMatchers("/api/medico/**").authenticated();
-                    req.requestMatchers("/api/financeiro/**").authenticated();
-
-                    // QUALQUER OUTRA ROTA que não foi definida acima precisa de autenticação.
-                    // Isso é mais seguro que 'denyAll()', pois evita que você se tranque pra fora
-                    // ao criar um endpoint novo e esquecer de liberar aqui.
+                    // 3. REGRA GERAL (Catch-all)
+                    // Qualquer outra rota que não foi definida acima, precisa de autenticação.
+                    // Isso cobre /api/recepcao, /api/medico, /api/triagem, etc.
                     req.anyRequest().authenticated();
                 })
+                // Adiciona nosso filtro JWT antes do filtro padrão do Spring
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
