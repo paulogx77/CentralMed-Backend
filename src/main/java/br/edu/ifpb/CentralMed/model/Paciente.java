@@ -14,6 +14,7 @@ public class Paciente {
     @Column(unique = true) private String cpf;
     private LocalDate dataNasc;
     @Column(columnDefinition = "TEXT") private String alergiasComorbidades;
-    private String convenio;
-
+    @ManyToOne
+    @JoinColumn(name = "convenio_id")
+    private Convenio convenio;
 }

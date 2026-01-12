@@ -3,24 +3,18 @@ package br.edu.ifpb.CentralMed.controller;
 import br.edu.ifpb.CentralMed.dto.FinalizarConsultaDTO;
 import br.edu.ifpb.CentralMed.model.*;
 import br.edu.ifpb.CentralMed.model.enums.StatusAgendamento;
-import br.edu.ifpb.CentralMed.repository.ConsultaRepository;
 import br.edu.ifpb.CentralMed.service.AtendimentoService;
 import br.edu.ifpb.CentralMed.service.MedicoService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import java.util.Optional; // Importe isso
-
-
 
 @RestController
 @RequestMapping("/api/medico")
 public class MedicoController {
-    @Autowired private AtendimentoService atendimentoService;
-    @Autowired private MedicoService medicoService;
-    @Autowired private ConsultaRepository consultaRepository; // Injete o repository se não tiver
 
+    @Autowired private AtendimentoService atendimentoService;
+    @Autowired private MedicoService medicoService; // Nome correto
 
     @GetMapping("/fila")
     public List<Agendamento> getFilaConsulta() {
@@ -29,34 +23,27 @@ public class MedicoController {
 
     @GetMapping("/dados-triagem/{agendamentoId}")
     public Triagem getTriagem(@PathVariable Long agendamentoId) {
-        return medicoService.buscarDadosTriagem(agendamentoId);
+        return medicoService.buscarDadosTriagem(agendamentoId); // Método correto
     }
 
     @PostMapping("/consulta/{agendamentoId}/iniciar")
     public Consulta iniciar(@PathVariable Long agendamentoId) {
-        return medicoService.iniciarConsulta(agendamentoId);
+        return medicoService.iniciarConsulta(agendamentoId); // Método correto
     }
 
     @PostMapping("/consulta/{consultaId}/finalizar")
     public Consulta finalizar(@PathVariable Long consultaId, @RequestBody FinalizarConsultaDTO dto) {
-        return medicoService.finalizarConsulta(consultaId, dto);
+        return medicoService.finalizarConsulta(consultaId, dto); // Método correto
     }
 
+    // Adicione os controllers para os métodos que faltavam
     @GetMapping("/historico/{pacienteId}")
-    public List<Consulta> getHistoricoPaciente(@PathVariable Long pacienteId) {
+    public List<Consulta> getHistorico(@PathVariable Long pacienteId){
         return medicoService.getHistoricoPaciente(pacienteId);
     }
 
-    @GetMapping("/atestado/{consultaId}")
-    public String gerarAtestado(@PathVariable Long consultaId, @RequestParam Integer dias) {
+    @PostMapping("/atestado/{consultaId}")
+    public String gerarAtestado(@PathVariable Long consultaId, @RequestParam Integer dias){
         return medicoService.gerarTextoAtestado(consultaId, dias);
     }
-
-    @GetMapping("/consulta/{id}")
-    public ResponseEntity<Consulta> getConsultaPorId(@PathVariable Long id) {
-        return consultaRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
 }
