@@ -2,7 +2,7 @@ package br.edu.ifpb.CentralMed.model;
 
 import br.edu.ifpb.CentralMed.model.enums.PerfilUsuario;
 import jakarta.persistence.*;
-import lombok.Data;
+
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -29,6 +29,9 @@ public class Profissional implements UserDetails {
     private String usuarioLogin;
 
     private String senha;
+    
+    @Column(columnDefinition = "boolean default true")
+    private Boolean ativo = true;
 
     @Enumerated(EnumType.STRING)
     private PerfilUsuario perfil;

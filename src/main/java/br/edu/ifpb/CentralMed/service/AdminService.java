@@ -6,6 +6,7 @@ import br.edu.ifpb.CentralMed.model.enums.PerfilUsuario;
 import br.edu.ifpb.CentralMed.repository.EstoqueRepository;
 import br.edu.ifpb.CentralMed.repository.ProfissionalRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,23 +21,80 @@ public class AdminService {
     @Autowired
     private EstoqueRepository estoqueRepository;
 
-    // --- Gestão de Profissionais ---
+    // ==========================================
+    // GESTÃO DE PROFISSIONAIS
+    // ==========================================
 
-    public Profissional salvarProfissional(Profissional profissional) {
-        return profissionalRepository.save(profissional);
+    /**
+     * Lista todos os usuários (ativos e inativos)
+     */
+    public List<Profissional> listarTodos() {
+        return profissionalRepository.findAll();
     }
 
+    /**
+     * Filtra usuários por perfil (ex: só MÉDICOS para o agendamento)
+     */
     public List<Profissional> listarPorPerfil(PerfilUsuario perfil) {
         return profissionalRepository.findAll().stream()
                 .filter(p -> p.getPerfil() == perfil)
                 .collect(Collectors.toList());
     }
 
-    public List<Profissional> listarTodos() {
-        return profissionalRepository.findAll();
+    /**
+     * Salva um novo usuário (Criptografa a senha)
+     */
+    public Profissional salvar(Profissional profissional) {
+        // Criptografa a senha antes de salvar no banco
+        String senhaHash = new BCryptPasswordEncoder().encode(profissional.getSenha());
+        profissional.setSenha(senhaHash);
+        
+        // Garante que nasce ativo
+        profissional.setAtivo(true);
+        
+        return profissionalRepository.save(profissional);
     }
 
-    // --- Gestão de Estoque ---
+    /**
+     * Atualiza dados de um usuário existente
+     */
+    public Profissional atualizar(Long id, Profissional dadosAtualizados) {
+        Profissional existente = profissionalRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Profissional não encontrado"));
+
+        // Atualiza campos cadastrais
+        existente.setNome(dadosAtualizados.getNome());
+        existente.setUsuarioLogin(dadosAtualizados.getUsuarioLogin());
+        existente.setCargo(dadosAtualizados.getCargo());
+        existente.setCrmRegistro(dadosAtualizados.getCrmRegistro());
+        existente.setPerfil(dadosAtualizados.getPerfil());
+
+        // Lógica de Senha: Só altera se o usuário enviou uma nova
+        if (dadosAtualizados.getSenha() != null && !dadosAtualizados.getSenha().isEmpty()) {
+            String senhaHash = new BCryptPasswordEncoder().encode(dadosAtualizados.getSenha());
+            existente.setSenha(senhaHash);
+        }
+
+        return profissionalRepository.save(existente);
+    }
+
+    /**
+     * Bloqueia ou Desbloqueia o acesso (Soft Delete)
+     */
+    public void alternarStatus(Long id) {
+        Profissional p = profissionalRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Profissional não encontrado"));
+        
+        // Inverte o status atual (se true vira false, se null vira true)
+        boolean statusAtual = p.getAtivo() != null && p.getAtivo();
+        p.setAtivo(!statusAtual);
+        
+        profissionalRepository.save(p);
+    }
+
+    // ==========================================
+    // GESTÃO DE ESTOQUE
+    // ==========================================
 
     public EstoqueInsumos adicionarEstoque(Long idInsumo, Integer quantidadeAdicional) {
         EstoqueInsumos item = estoqueRepository.findById(idInsumo)
@@ -48,6 +106,8 @@ public class AdminService {
     }
 
     public List<EstoqueInsumos> verificarEstoqueBaixo() {
-        return estoqueRepository.findItensComEstoqueBaixo();
+        return estoqueRepository.findAll().stream()
+                .filter(i -> i.getQtdeAtual() <= i.getQtdeMinima())
+                .collect(Collectors.toList());
     }
 }
