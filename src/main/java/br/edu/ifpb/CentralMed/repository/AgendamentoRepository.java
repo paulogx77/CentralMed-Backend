@@ -13,8 +13,10 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
 
     List<Agendamento> findByDataAndStatusOrderByPrioridadeDescHoraAsc(LocalDate data, StatusAgendamento status);
 
-    // Busca fila específica de um médico (caso queira filtrar)
-    List<Agendamento> findByMedicoIdAndDataAndStatus(Long medicoId, LocalDate data, StatusAgendamento status);
+    // MÉTODO QUE VOCÊ VAI USAR AGORA
+    List<Agendamento> findByMedicoIdAndDataAndStatusOrderByPrioridadeDescHoraAsc(
+            Long medicoId, LocalDate data, StatusAgendamento status
+    );
 
 
 }

@@ -30,22 +30,24 @@ public class SecurityConfigurations {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> {
 
-                    // 1. ROTAS PÚBLICAS (NÃO precisa de login)
+                    // 1. ROTAS PÚBLICAS (Acesso livre)
                     req.requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll();
+                    req.requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll();
 
-                    // --- A CORREÇÃO DE ORDEM ESTÁ AQUI ---
-                    // 2. EXCEÇÕES E ROTAS ESPECÍFICAS
-                    // Libera a LEITURA de médicos para qualquer um logado, ANTES da regra geral de Admin
+                    // 2. EXCEÇÃO: Libera a LEITURA da lista de médicos para qualquer usuário autenticado.
                     req.requestMatchers(HttpMethod.GET, "/api/admin/profissionais/medicos").authenticated();
 
+                    // --- NOVA REGRA PARA UPLOAD DE ARQUIVOS ---
+                    // Libera qualquer usuário logado para enviar anexos
+                    req.requestMatchers("/api/anexos/**").authenticated();
+                    // ---------------------------------------------
+
                     // 3. REGRA GERAL DE ADMIN
-                    // O restante das rotas de admin são trancadas apenas para ROLE_ADMIN
                     req.requestMatchers("/api/admin/**").hasRole("ADMIN");
                     req.requestMatchers("/api/faturamento/**").hasRole("ADMIN");
                     req.requestMatchers("/api/notas-fiscais/**").hasRole("ADMIN");
 
-                    // 4. REGRA FINAL GERAL
-                    // Se não for nenhuma das acima, basta estar autenticado.
+                    // 4. REGRA FINAL (Qualquer outra coisa precisa de login)
                     req.anyRequest().authenticated();
                 })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -35,4 +36,8 @@ public class Consulta {
     @OneToOne(mappedBy = "consulta", cascade = CascadeType.ALL)
     @JsonIgnore
     private GuiaConsulta guia;
+
+
+    @OneToMany(mappedBy = "consulta", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<Anexo> anexos = new ArrayList<>();
 }

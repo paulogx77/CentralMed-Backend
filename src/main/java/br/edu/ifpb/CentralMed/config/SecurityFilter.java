@@ -9,7 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -31,40 +31,33 @@ public class SecurityFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String requestURI = request.getRequestURI();
-
-        if (requestURI.startsWith("/api/auth")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String token = recuperarToken(request);
+        var token = this.recuperarToken(request);
 
         if (token != null) {
-            try {
-                String login = tokenService.validarToken(token);
+            // Valida o token e extrai o login
+            var login = tokenService.validarToken(token);
 
-                profissionalRepository.findByUsuarioLogin(login).ifPresent(profissional -> {
+            // Se o login for válido, busca o usuário
+            if (login != null && !login.isEmpty()) {
 
+                // Usa o método que retorna UserDetails para maior compatibilidade com Spring Security
+                profissionalRepository.findUserDetailsByUsuarioLogin(login).ifPresent(userDetails -> {
+
+                    // Cria a autenticação com o UserDetails (que contém as authorities)
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
-                                    profissional,
+                                    userDetails,
                                     null,
-                                    profissional.getAuthorities() // Agora está chamando em 'Profissional', não em 'Optional'
+                                    userDetails.getAuthorities()
                             );
 
-                    authentication.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
-
+                    // Coloca o usuário autenticado no contexto da requisição
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 });
-
-            } catch (Exception e) {
-                SecurityContextHolder.clearContext();
             }
         }
 
+        // Continua o fluxo para os próximos filtros do Spring
         filterChain.doFilter(request, response);
     }
 

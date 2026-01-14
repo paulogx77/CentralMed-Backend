@@ -75,7 +75,15 @@ public class MedicoService {
         return consultaRepository.save(c);
     }
 
-    // Método que estava faltando
+    public List<Agendamento> listarFilaDoMedico(Long medicoId) {
+        return agendamentoRepository.findByMedicoIdAndDataAndStatusOrderByPrioridadeDescHoraAsc(
+                medicoId,
+                LocalDate.now(),
+                StatusAgendamento.AGUARDANDO_CONSULTA
+        );
+    }
+
+
     public List<Consulta> getHistoricoPaciente(Long pacienteId) {
         return consultaRepository.findAll().stream()
                 .filter(c -> c.getAgendamento().getPaciente().getId().equals(pacienteId))
