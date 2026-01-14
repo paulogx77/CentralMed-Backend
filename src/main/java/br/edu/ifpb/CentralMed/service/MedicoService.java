@@ -2,10 +2,9 @@
 package br.edu.ifpb.CentralMed.service;
 
 import br.edu.ifpb.CentralMed.dto.FinalizarConsultaDTO;
-import br.edu.ifpb.CentralMed.dto.InsumoRequestDTO;
 import br.edu.ifpb.CentralMed.model.*;
 import br.edu.ifpb.CentralMed.model.enums.StatusAgendamento;
-import br.edu.ifpb.CentralMed.model.enums.StatusGuia;
+import br.edu.ifpb.CentralMed.model.enums.StatusNfs;
 import br.edu.ifpb.CentralMed.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -69,7 +67,7 @@ public class MedicoService {
             guia.setConsulta(c);
             guia.setNumeroGuia("G" + LocalDate.now().getYear() + "-" + c.getId());
             guia.setDataEmissao(LocalDate.now());
-            guia.setStatus(StatusGuia.ABERTA);
+            guia.setStatus(StatusNfs.StatusGuia.ABERTA);
             guia.setValorConsulta(new BigDecimal("120.00"));
             guiaRepository.save(guia);
         }

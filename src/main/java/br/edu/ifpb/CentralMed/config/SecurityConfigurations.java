@@ -20,34 +20,34 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfigurations {
 
     @Autowired
-    SecurityFilter securityFilter;
+    private SecurityFilter securityFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                // Habilita a configuração de CORS que definimos no WebConfig
                 .cors(Customizer.withDefaults())
-                // Desabilita proteção CSRF pois usaremos Tokens (Stateless)
                 .csrf(csrf -> csrf.disable())
-                // Configura a sessão como STATELESS: não guarda estado do usuário no servidor
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // Define as regras de autorização para cada endpoint
                 .authorizeHttpRequests(req -> {
 
-                    // 1. ROTAS PÚBLICAS (Acesso liberado sem login)
-                    req.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll();
-                    req.requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll();
+                    // 1. ROTAS PÚBLICAS (NÃO precisa de login)
+                    req.requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll();
 
-                    // 2. ROTAS DE ADMIN (Acesso restrito apenas ao perfil ADMIN)
+                    // --- A CORREÇÃO DE ORDEM ESTÁ AQUI ---
+                    // 2. EXCEÇÕES E ROTAS ESPECÍFICAS
+                    // Libera a LEITURA de médicos para qualquer um logado, ANTES da regra geral de Admin
+                    req.requestMatchers(HttpMethod.GET, "/api/admin/profissionais/medicos").authenticated();
+
+                    // 3. REGRA GERAL DE ADMIN
+                    // O restante das rotas de admin são trancadas apenas para ROLE_ADMIN
                     req.requestMatchers("/api/admin/**").hasRole("ADMIN");
                     req.requestMatchers("/api/faturamento/**").hasRole("ADMIN");
+                    req.requestMatchers("/api/notas-fiscais/**").hasRole("ADMIN");
 
-                    // 3. REGRA GERAL (Catch-all)
-                    // Qualquer outra rota que não foi definida acima, precisa de autenticação.
-                    // Isso cobre /api/recepcao, /api/medico, /api/triagem, etc.
+                    // 4. REGRA FINAL GERAL
+                    // Se não for nenhuma das acima, basta estar autenticado.
                     req.anyRequest().authenticated();
                 })
-                // Adiciona nosso filtro JWT antes do filtro padrão do Spring
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

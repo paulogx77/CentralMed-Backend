@@ -11,19 +11,12 @@ import org.springframework.stereotype.Service;
 public class AuthorizationService implements UserDetailsService {
 
     @Autowired
-    ProfissionalRepository repository;
+    private ProfissionalRepository repository;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // --- CORREÇÃO AQUI ---
-        // Buscamos o usuário. Se vier nulo, lançamos a exceção.
-        UserDetails user = repository.findByUsuarioLogin(username);
 
-        if (user == null) {
-            throw new UsernameNotFoundException("Usuário '" + username + "' não encontrado.");
-        }
-
-        return user;
-        // ---------------------
+        return repository.findUserDetailsByUsuarioLogin(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Credenciais inválidas ou usuário '" + username + "' não encontrado."));
     }
 }

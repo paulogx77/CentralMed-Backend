@@ -1,10 +1,10 @@
 package br.edu.ifpb.CentralMed.model;
 
 // --- Importe o Enum CORRETO ---
-import br.edu.ifpb.CentralMed.model.enums.StatusGuia;
 // ----------------------------
 
-import jakarta.persistence.*;
+import br.edu.ifpb.CentralMed.model.enums.StatusNfs;
+        import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,7 +23,7 @@ public class GuiaConsulta {
 
     // --- CORREÇÃO AQUI: Garanta que está usando 'StatusGuia' ---
     @Enumerated(EnumType.STRING)
-    private StatusGuia status;
+    private StatusNfs.StatusGuia status;
     // -----------------------------------------------------------
 
     @OneToOne
