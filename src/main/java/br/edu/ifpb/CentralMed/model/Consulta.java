@@ -2,23 +2,12 @@ package br.edu.ifpb.CentralMed.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-// IMPORTS DO LOMBOK
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-
+import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-// --- CORREÇÃO AQUI ---
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode(of = "id") // Evita o loop infinito comparando apenas o ID
+@Data
 @Entity
 public class Consulta {
 
@@ -38,15 +27,16 @@ public class Consulta {
     private String prescricao;
 
     @OneToOne
-    @JoinColumn(name = "agendamento_id", unique = true)
+    @JoinColumn(name = "agendamento_id", unique = true) // Garante que uma agenda só gera uma consulta
     private Agendamento agendamento;
 
     @OneToMany(mappedBy = "consulta", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private List<ConsumoInsumo> insumosConsumidos = new ArrayList<>(); // Boa prática inicializar
+    private List<ConsumoInsumo> insumosConsumidos;
 
     @OneToOne(mappedBy = "consulta", cascade = CascadeType.ALL)
     @JsonIgnore
     private GuiaConsulta guia;
+
 
     @OneToMany(mappedBy = "consulta", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<Anexo> anexos = new ArrayList<>();

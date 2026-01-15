@@ -2,7 +2,7 @@ package br.edu.ifpb.CentralMed.model;
 
 import br.edu.ifpb.CentralMed.model.enums.PerfilUsuario;
 import jakarta.persistence.*;
-import lombok.Data;
+
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -34,10 +34,14 @@ public class Profissional implements UserDetails {
     private PerfilUsuario perfil;
 
     // --- Métodos do Security ---
+    // Em Profissional.java
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        if(this.perfil == PerfilUsuario.ADMIN) return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_USER"));
-        else return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        if (this.perfil == null) {
+            return List.of();
+        }
+        // Adiciona o prefixo ROLE_ que o hasRole() do Spring Security espera
+        return List.of(new SimpleGrantedAuthority("ROLE_" + this.perfil.name()));
     }
 
     @Override public String getPassword() { return senha; }

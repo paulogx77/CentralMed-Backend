@@ -5,7 +5,9 @@ import br.edu.ifpb.CentralMed.model.Convenio;
 import br.edu.ifpb.CentralMed.model.EstoqueInsumos;
 import br.edu.ifpb.CentralMed.model.ProcedimentoTuss;
 import br.edu.ifpb.CentralMed.model.Profissional;
+import br.edu.ifpb.CentralMed.model.TabelaPrecos;
 import br.edu.ifpb.CentralMed.model.enums.PerfilUsuario;
+import br.edu.ifpb.CentralMed.repository.TabelaPrecosRepository;
 import br.edu.ifpb.CentralMed.service.AdminService;
 import br.edu.ifpb.CentralMed.service.ConvenioService;
 import br.edu.ifpb.CentralMed.service.ProcedimentoTussService; // Estava faltando
@@ -13,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -22,6 +25,9 @@ public class AdminController {
     @Autowired private AdminService adminService;
     @Autowired private ConvenioService convenioService;
     @Autowired private ProcedimentoTussService procedimentoTussService;
+    @Autowired private TabelaPrecosRepository tabelaPrecosRepository;
+    
+    
 
     // === PROFISSIONAIS ===
 
@@ -79,5 +85,16 @@ public class AdminController {
     @GetMapping("/procedimentos")
     public List<ProcedimentoTuss> listarProcedimentos() {
         return procedimentoTussService.listarTodos();
+    }
+
+    @PostMapping("/tabela-precos")
+    public TabelaPrecos definirPreco(@RequestBody TabelaPrecos preco) {
+        return tabelaPrecosRepository.save(preco);
+    }
+    @GetMapping("/tabela-precos/{convenioId}")
+    public List<TabelaPrecos> listarPrecosPorConvenio(@PathVariable Long convenioId){
+        // Lógica para filtrar no Service
+        // return convenioService.getTabelaDePrecos(convenioId);
+        return new ArrayList<>(); // Por enquanto, até criarmos a tela
     }
 }

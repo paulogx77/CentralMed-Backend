@@ -23,6 +23,8 @@ public class MedicoService {
     @Autowired private TriagemRepository triagemRepository;
     @Autowired private GuiaConsultaRepository guiaRepository;
     @Autowired private ConvenioRepository convenioRepository;
+    @Autowired private TabelaPrecosRepository tabelaPrecosRepository;
+    @Autowired private ProcedimentoTussRepository procedimentoTussRepository;
 
     public Triagem buscarDadosTriagem(Long agendamentoId) {
         return triagemRepository.findByAgendamentoId(agendamentoId);
@@ -55,18 +57,38 @@ public class MedicoService {
         agendamentoRepository.save(c.getAgendamento());
 
         Paciente paciente = c.getAgendamento().getPaciente();
+        
+        // Se for paciente de convênio...
         if (paciente.getConvenio() != null && !paciente.getConvenio().equalsIgnoreCase("Particular")) {
             convenioRepository.findByNome(paciente.getConvenio()).ifPresent(convenio -> {
+                
+                // --- INÍCIO DA MUDANÇA (LÓGICA DO VALOR) ---
+                
+                // Supõe que o procedimento é sempre "Consulta" (ID 1), por enquanto.
+                // No futuro, o DTO da finalização teria que trazer o código do procedimento.
+                final Long ID_PROCEDIMENTO_CONSULTA = 1L;
+
+                // Busca o valor específico para esta combinação de convênio e procedimento.
+                BigDecimal valorDaConsulta = tabelaPrecosRepository
+                        .findByConvenioIdAndProcedimentoId(convenio.getId(), ID_PROCEDIMENTO_CONSULTA)
+                        .map(TabelaPrecos::getValor) // Se achar o preço, pega o valor
+                        .orElse(BigDecimal.ZERO); // Se não houver preço cadastrado, zera (segurança).
+                
+                // ------------------ FIM DA MUDANÇA ------------------
+                
                 GuiaConsulta guia = new GuiaConsulta();
                 guia.setConsulta(c);
                 guia.setConvenio(convenio);
                 guia.setNumeroGuia("G" + LocalDate.now().getYear() + "-" + c.getId());
                 guia.setDataEmissao(LocalDate.now());
                 guia.setStatus(StatusGuia.ABERTA);
-                guia.setValorConsulta(new BigDecimal("120.00"));
+                
+                guia.setValorConsulta(valorDaConsulta); // <-- USA O VALOR DINÂMICO
+                
                 guiaRepository.save(guia);
             });
         }
+        
         return consultaRepository.save(c);
     }
 
