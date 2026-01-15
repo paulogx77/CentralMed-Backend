@@ -9,11 +9,6 @@ import java.util.Optional;
 
 @Repository
 public interface ProfissionalRepository extends JpaRepository<Profissional, Long> {
-
-    // --- Método para o Spring Security ---
     Optional<UserDetails> findUserDetailsByUsuarioLogin(String usuarioLogin);
-
-    // --- Método para USO INTERNO (Ex: Cadastro, Perfil) ---
     Optional<Profissional> findByUsuarioLogin(String usuarioLogin);
-
 }

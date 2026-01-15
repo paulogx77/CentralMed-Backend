@@ -1,10 +1,7 @@
 package br.edu.ifpb.CentralMed.model;
 
-// --- Importe o Enum CORRETO ---
-// ----------------------------
-
-import br.edu.ifpb.CentralMed.model.enums.StatusNfs;
-        import jakarta.persistence.*;
+import br.edu.ifpb.CentralMed.model.enums.StatusGuia; // <--- O IMPORT CORRETO
+import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,12 +18,17 @@ public class GuiaConsulta {
     private LocalDate dataEmissao;
     private BigDecimal valorConsulta;
 
-    // --- CORREÇÃO AQUI: Garanta que está usando 'StatusGuia' ---
+    // --- CORREÇÃO AQUI ---
+    // Use 'StatusGuia', sem nenhum 'StatusNfs.' na frente
     @Enumerated(EnumType.STRING)
-    private StatusNfs.StatusGuia status;
-    // -----------------------------------------------------------
+    private StatusGuia status;
+    // -----------------------
 
     @OneToOne
     @JoinColumn(name = "consulta_id")
     private Consulta consulta;
+
+    @ManyToOne
+    @JoinColumn(name = "convenio_id")
+    private Convenio convenio;
 }

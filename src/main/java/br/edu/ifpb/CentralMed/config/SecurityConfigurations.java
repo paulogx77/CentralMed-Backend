@@ -29,31 +29,26 @@ public class SecurityConfigurations {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> {
-
-                    // 1. ROTAS PÚBLICAS (Acesso livre)
+                    
+                    // ROTAS PÚBLICAS
                     req.requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll();
-                    req.requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll();
 
-                    // 2. EXCEÇÃO: Libera a LEITURA da lista de médicos para qualquer usuário autenticado.
+                    // EXCEÇÃO: Libera busca de médicos para qualquer um logado
                     req.requestMatchers(HttpMethod.GET, "/api/admin/profissionais/medicos").authenticated();
 
-                    // --- NOVA REGRA PARA UPLOAD DE ARQUIVOS ---
-                    // Libera qualquer usuário logado para enviar anexos
-                    req.requestMatchers("/api/anexos/**").authenticated();
-                    // ---------------------------------------------
-
-                    // 3. REGRA GERAL DE ADMIN
+                    // ROTAS DE ADMIN
                     req.requestMatchers("/api/admin/**").hasRole("ADMIN");
                     req.requestMatchers("/api/faturamento/**").hasRole("ADMIN");
                     req.requestMatchers("/api/notas-fiscais/**").hasRole("ADMIN");
 
-                    // 4. REGRA FINAL (Qualquer outra coisa precisa de login)
+                    // QUALQUER OUTRA ROTA: Apenas precisa estar autenticado
                     req.anyRequest().authenticated();
                 })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
+    // (O resto da classe com os outros @Beans continua igual)
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
