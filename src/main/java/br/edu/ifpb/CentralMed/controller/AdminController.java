@@ -27,25 +27,38 @@ public class AdminController {
     @Autowired private ProcedimentoTussService procedimentoTussService;
     @Autowired private TabelaPrecosRepository tabelaPrecosRepository;
     
-    
-
-    // === PROFISSIONAIS ===
-
-    @PostMapping("/profissionais")
-    public Profissional cadastrarProfissional(@RequestBody Profissional profissional) {
-        return adminService.salvarProfissional(profissional);
-    }
+    //PROFISSIONAIS//
 
     @GetMapping("/profissionais")
-    public List<Profissional> listarTodosProfissionais() { // Nome do método ficou mais claro
+    public List<Profissional> listarTodosProfissionais() {
         return adminService.listarTodos();
     }
-
+    
     @GetMapping("/profissionais/medicos")
     public List<Profissional> listarMedicos() {
         return adminService.listarPorPerfil(PerfilUsuario.MEDICO);
     }
 
+    // --- NOVO ENDPOINT ---
+    @GetMapping("/profissionais/{id}")
+    public ResponseEntity<Profissional> getProfissionalById(@PathVariable Long id) {
+        return adminService.findById(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+    
+    // --- NOVO ENDPOINT ---
+    @PutMapping("/profissionais/{id}")
+    public Profissional atualizarProfissional(@PathVariable Long id, @RequestBody Profissional profissional) {
+        return adminService.atualizarProfissional(id, profissional);
+    }
+    
+    // --- NOVO ENDPOINT ---
+    @DeleteMapping("/profissionais/{id}")
+    public ResponseEntity<Void> deletarProfissional(@PathVariable Long id) {
+        adminService.deletarProfissional(id);
+        return ResponseEntity.noContent().build();
+    }
     // === ESTOQUE ===
 
     @GetMapping("/estoque/alertas")
