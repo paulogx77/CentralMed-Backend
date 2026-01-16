@@ -101,12 +101,14 @@ public class MedicoService {
     }
 
     public List<Consulta> getHistoricoPaciente(Long pacienteId) {
-        return consultaRepository.findAll().stream()
-                .filter(c -> c.getAgendamento() != null &&
-                             c.getAgendamento().getPaciente() != null &&
-                             c.getAgendamento().getPaciente().getId().equals(pacienteId))
-                .collect(Collectors.toList());
-    }
+    return consultaRepository.findAll().stream()
+            .filter(c -> c.getAgendamento() != null &&
+                         c.getAgendamento().getPaciente() != null &&
+                         c.getAgendamento().getPaciente().getId().equals(pacienteId))
+            // Opcional: ordenar da mais recente para a mais antiga
+            .sorted((c1, c2) -> c2.getDataHoraInicio().compareTo(c1.getDataHoraInicio()))
+            .collect(Collectors.toList());
+}
 
     public String gerarTextoAtestado(Long consultaId, Integer diasAfastamento) {
         Consulta c = consultaRepository.findById(consultaId)
