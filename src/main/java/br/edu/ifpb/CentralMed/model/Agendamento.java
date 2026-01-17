@@ -24,7 +24,9 @@ public class Agendamento {
     @ManyToOne @JoinColumn(name = "profissional_id")
     private Profissional medico;
 
-    @Enumerated(EnumType.ORDINAL) // Salva 0, 1 ou 2 no banco
+    @Enumerated(EnumType.ORDINAL)
     private Prioridade prioridade = Prioridade.NORMAL;
+
+    private boolean isRetorno = false;
 
 }
