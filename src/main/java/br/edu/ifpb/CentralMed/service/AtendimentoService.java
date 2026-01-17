@@ -2,6 +2,7 @@ package br.edu.ifpb.CentralMed.service;
 
 import br.edu.ifpb.CentralMed.dto.*;
 import br.edu.ifpb.CentralMed.model.*;
+import br.edu.ifpb.CentralMed.model.enums.Prioridade;
 import br.edu.ifpb.CentralMed.model.enums.StatusAgendamento;
 import br.edu.ifpb.CentralMed.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +40,10 @@ public class AtendimentoService {
         ag.setData(LocalDate.now());
         ag.setHora(LocalTime.now());
         ag.setStatus(StatusAgendamento.AGUARDANDO_TRIAGEM);
-        ag.setSenhaPainel("SENHA-" + System.currentTimeMillis() % 1000); // Gera senha simples
+        ag.setSenhaPainel("SENHA-" + System.currentTimeMillis() % 1000);
+        if (dto.getPrioridade() != null) {
+            ag.setPrioridade(Prioridade.valueOf(dto.getPrioridade()));
+        }
 
         return agendamentoRepository.save(ag);
     }
@@ -71,15 +75,19 @@ public class AtendimentoService {
 
     // 6. Atualizar Cadastro de Paciente (NOVO)
     public Paciente atualizarPaciente(Long id, Paciente dadosNovos) {
-        Paciente p = pacienteRepository.findById(id)
+        // 1. Busca o paciente no banco
+        Paciente pacienteExistente = pacienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado"));
 
-        p.setNome(dadosNovos.getNome());
-        p.setConvenio(dadosNovos.getConvenio());
-        p.setAlergiasComorbidades(dadosNovos.getAlergiasComorbidades());
-        // CPF e Data de Nascimento geralmente não alteramos por aqui, mas pode adicionar se quiser
+        // 2. Atualiza os dados
+        pacienteExistente.setNome(dadosNovos.getNome());
+        pacienteExistente.setCpf(dadosNovos.getCpf());
+        pacienteExistente.setDataNasc(dadosNovos.getDataNasc());
+        pacienteExistente.setConvenio(dadosNovos.getConvenio());
+        pacienteExistente.setAlergiasComorbidades(dadosNovos.getAlergiasComorbidades());
 
-        return pacienteRepository.save(p);
+        // 3. Salva as alterações
+        return pacienteRepository.save(pacienteExistente);
     }
 
     // --- TRIAGEM (ENFERMAGEM) ---
@@ -109,6 +117,6 @@ public class AtendimentoService {
 
     // 8. Listar Filas
     public List<Agendamento> listarFila(StatusAgendamento status) {
-        return agendamentoRepository.findByDataAndStatusOrderByHoraAsc(LocalDate.now(), status);
+        return agendamentoRepository.findByDataAndStatusOrderByPrioridadeDescHoraAsc(LocalDate.now(), status);
     }
 }

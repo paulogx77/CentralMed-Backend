@@ -15,7 +15,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - centralmed-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U centralmed_user -d centralmed_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
+  # --- AQUI ESTÁ O QUE FALTAVA ---
   pgadmin:
     image: dpage/pgadmin4
     container_name: centralmed-pgadmin
@@ -29,6 +35,7 @@ services:
       - postgres
     networks:
       - centralmed-net
+  # -------------------------------
 
   api:
     build: .
@@ -42,7 +49,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: centralmed_password
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - centralmed-net
 

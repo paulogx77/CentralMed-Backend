@@ -10,9 +10,4 @@ import java.util.List;
 @Repository
 public interface EstoqueRepository extends JpaRepository<EstoqueInsumos, Long> {
 
-    // Útil para buscar insumos pelo nome na tela de gestão
-    List<EstoqueInsumos> findByNomeContainingIgnoreCase(String nome);
-
-    @Query("SELECT e FROM EstoqueInsumos e WHERE e.qtdeAtual <= e.qtdeMinima")
-    List<EstoqueInsumos> findItensComEstoqueBaixo();
 }

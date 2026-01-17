@@ -4,10 +4,10 @@ import br.edu.ifpb.CentralMed.model.enums.PerfilUsuario;
 
 public record RegisterDTO(
         String nome,
-        String usuarioLogin,
+        String usuarioLogin, // O nome no JSON do Postman deve ser 'usuarioLogin'
         String senha,
         String cargo,
-        String crmRegistro, // Pode ser nulo se for recepcionista
-        PerfilUsuario perfil
-) {
+        String crmRegistro,
+        PerfilUsuario perfil)
+{
 }

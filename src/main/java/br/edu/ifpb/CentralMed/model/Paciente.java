@@ -8,12 +8,23 @@ import java.time.LocalDate;
 @Entity
 public class Paciente {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String nome;
-    @Column(unique = true) private String cpf;
-    private LocalDate dataNasc;
-    @Column(columnDefinition = "TEXT") private String alergiasComorbidades;
-    private String convenio;
 
+    private String nome;
+
+    @Column(unique = true)
+    private String cpf;
+
+    private LocalDate dataNasc;
+
+    @Column(columnDefinition = "TEXT")
+    private String alergiasComorbidades;
+
+    // --- CORREÇÃO ESTÁ AQUI ---
+    // Deve ser uma String para corresponder ao que o formulário do Front envia.
+    // A lógica para vincular ao objeto Convenio é feita no MedicoService depois.
+    private String convenio;
+    // -------------------------
 }

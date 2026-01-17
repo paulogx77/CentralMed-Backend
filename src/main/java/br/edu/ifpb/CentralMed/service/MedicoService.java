@@ -1,33 +1,39 @@
 package br.edu.ifpb.CentralMed.service;
 
-import br.edu.ifpb.CentralMed.dto.*;
+import br.edu.ifpb.CentralMed.dto.FinalizarConsultaDTO;
 import br.edu.ifpb.CentralMed.model.*;
 import br.edu.ifpb.CentralMed.model.enums.StatusAgendamento;
+import br.edu.ifpb.CentralMed.model.enums.StatusGuia;
 import br.edu.ifpb.CentralMed.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class MedicoService {
+
     @Autowired private AgendamentoRepository agendamentoRepository;
     @Autowired private ConsultaRepository consultaRepository;
-    @Autowired private EstoqueRepository estoqueRepository;
-    @Autowired private ConsumoInsumoRepository consumoRepository;
     @Autowired private TriagemRepository triagemRepository;
-
-    // --- Métodos Existentes ---
+    @Autowired private GuiaConsultaRepository guiaRepository;
+    @Autowired private ConvenioRepository convenioRepository;
+    @Autowired private TabelaPrecosRepository tabelaPrecosRepository;
+    @Autowired private ProcedimentoTussRepository procedimentoTussRepository;
 
     public Triagem buscarDadosTriagem(Long agendamentoId) {
         return triagemRepository.findByAgendamentoId(agendamentoId);
     }
 
+    @Transactional
     public Consulta iniciarConsulta(Long agendamentoId) {
-        Agendamento ag = agendamentoRepository.findById(agendamentoId).orElseThrow();
+        Agendamento ag = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
         ag.setStatus(StatusAgendamento.EM_ATENDIMENTO);
         agendamentoRepository.save(ag);
 
@@ -39,70 +45,75 @@ public class MedicoService {
 
     @Transactional
     public Consulta finalizarConsulta(Long consultaId, FinalizarConsultaDTO dto) {
-        Consulta c = consultaRepository.findById(consultaId).orElseThrow();
-
-        // Dados Clínicos
+        Consulta c = consultaRepository.findById(consultaId)
+                .orElseThrow(() -> new RuntimeException("Consulta não encontrada"));
+        
         c.setAnamnese(dto.getAnamnese());
         c.setDiagnosticoCid10(dto.getDiagnosticoCid10());
         c.setPrescricao(dto.getPrescricao());
         c.setDataHoraFim(LocalDateTime.now());
 
-        // Baixa de Estoque
-        if(dto.getInsumosConsumidos() != null && !dto.getInsumosConsumidos().isEmpty()) {
-            List<ConsumoInsumo> listaConsumo = new ArrayList<>();
-
-            for(InsumoRequestDTO item : dto.getInsumosConsumidos()) {
-                EstoqueInsumos insumoEstoque = estoqueRepository.findById(item.getInsumoId())
-                        .orElseThrow(() -> new RuntimeException("Insumo não encontrado"));
-
-                // Subtrai do estoque
-                insumoEstoque.setQtdeAtual(insumoEstoque.getQtdeAtual() - item.getQuantidade());
-                estoqueRepository.save(insumoEstoque);
-
-                // Cria registro de consumo
-                ConsumoInsumo consumo = new ConsumoInsumo();
-                consumo.setConsulta(c);
-                consumo.setInsumo(insumoEstoque);
-                consumo.setQuantidadeUtilizada(item.getQuantidade());
-                listaConsumo.add(consumo);
-            }
-            c.setInsumosConsumidos(listaConsumo);
-        }
-
         c.getAgendamento().setStatus(StatusAgendamento.FINALIZADO);
         agendamentoRepository.save(c.getAgendamento());
 
+        Paciente paciente = c.getAgendamento().getPaciente();
+        
+        // Se for paciente de convênio...
+        if (paciente.getConvenio() != null && !paciente.getConvenio().equalsIgnoreCase("Particular")) {
+            convenioRepository.findByNome(paciente.getConvenio()).ifPresent(convenio -> {
+                
+                // --- INÍCIO DA MUDANÇA (LÓGICA DO VALOR) ---
+                
+                // Supõe que o procedimento é sempre "Consulta" (ID 1), por enquanto.
+                // No futuro, o DTO da finalização teria que trazer o código do procedimento.
+                final Long ID_PROCEDIMENTO_CONSULTA = 1L;
+
+                // Busca o valor específico para esta combinação de convênio e procedimento.
+                BigDecimal valorDaConsulta = tabelaPrecosRepository
+                        .findByConvenioIdAndProcedimentoId(convenio.getId(), ID_PROCEDIMENTO_CONSULTA)
+                        .map(TabelaPrecos::getValor) // Se achar o preço, pega o valor
+                        .orElse(BigDecimal.ZERO); // Se não houver preço cadastrado, zera (segurança).
+                
+                // ------------------ FIM DA MUDANÇA ------------------
+                
+                GuiaConsulta guia = new GuiaConsulta();
+                guia.setConsulta(c);
+                guia.setConvenio(convenio);
+                guia.setNumeroGuia("G" + LocalDate.now().getYear() + "-" + c.getId());
+                guia.setDataEmissao(LocalDate.now());
+                guia.setStatus(StatusGuia.ABERTA);
+                
+                guia.setValorConsulta(valorDaConsulta); // <-- USA O VALOR DINÂMICO
+                
+                guiaRepository.save(guia);
+            });
+        }
+        
         return consultaRepository.save(c);
     }
 
-    // --- NOVOS MÉTODOS (Para completar o Diagrama) ---
-
-    public List<Consulta> getHistoricoPaciente(Long pacienteId) {
-        // Busca apenas as consultas que foram FINALIZADAS
-        return consultaRepository.buscarHistoricoDoPaciente(
-                pacienteId,
-                StatusAgendamento.FINALIZADO
+    public List<Agendamento> listarFilaDoMedico(Long medicoId) {
+        return agendamentoRepository.findByMedicoIdAndDataAndStatusOrderByPrioridadeDescHoraAsc(
+                medicoId,
+                LocalDate.now(),
+                StatusAgendamento.AGUARDANDO_CONSULTA
         );
     }
+
+    public List<Consulta> getHistoricoPaciente(Long pacienteId) {
+    return consultaRepository.findAll().stream()
+            .filter(c -> c.getAgendamento() != null &&
+                         c.getAgendamento().getPaciente() != null &&
+                         c.getAgendamento().getPaciente().getId().equals(pacienteId))
+            // Opcional: ordenar da mais recente para a mais antiga
+            .sorted((c1, c2) -> c2.getDataHoraInicio().compareTo(c1.getDataHoraInicio()))
+            .collect(Collectors.toList());
+}
 
     public String gerarTextoAtestado(Long consultaId, Integer diasAfastamento) {
         Consulta c = consultaRepository.findById(consultaId)
                 .orElseThrow(() -> new RuntimeException("Consulta não encontrada"));
-
-        String paciente = c.getAgendamento().getPaciente().getNome();
-        String medico = c.getAgendamento().getMedico().getNome();
-        String crm = c.getAgendamento().getMedico().getCrmRegistro();
-
-        String data = c.getDataHoraFim() != null
-                ? c.getDataHoraFim().toLocalDate().toString()
-                : LocalDateTime.now().toLocalDate().toString();
-
-        return String.format(
-                "ATESTADO MÉDICO\n\n" +
-                        "Atesto para os devidos fins que o(a) Sr(a). %s foi atendido(a) por mim nesta data (%s) " +
-                        "e necessita de %d dias de afastamento de suas atividades laborais.\n\n" +
-                        "Dr. %s - CRM: %s",
-                paciente, data, diasAfastamento, medico, crm
-        );
+        String nomePaciente = c.getAgendamento().getPaciente().getNome();
+        return "Atesto que o paciente " + nomePaciente + " necessita de " + diasAfastamento + " dias de repouso.";
     }
 }

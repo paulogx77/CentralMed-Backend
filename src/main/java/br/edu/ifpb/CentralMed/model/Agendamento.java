@@ -1,5 +1,6 @@
 package br.edu.ifpb.CentralMed.model;
 
+import br.edu.ifpb.CentralMed.model.enums.Prioridade;
 import br.edu.ifpb.CentralMed.model.enums.StatusAgendamento;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -15,12 +16,15 @@ public class Agendamento {
     private LocalDate data;
     private LocalTime hora;
     @Enumerated(EnumType.STRING) private StatusAgendamento status;
-    private String senhaPainel; // Ex: A01, N02
+    private String senhaPainel;
 
     @ManyToOne @JoinColumn(name = "paciente_id")
     private Paciente paciente;
 
     @ManyToOne @JoinColumn(name = "profissional_id")
     private Profissional medico;
+
+    @Enumerated(EnumType.ORDINAL) // Salva 0, 1 ou 2 no banco
+    private Prioridade prioridade = Prioridade.NORMAL;
 
 }

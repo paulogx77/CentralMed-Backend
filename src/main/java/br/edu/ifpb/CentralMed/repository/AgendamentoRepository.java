@@ -11,9 +11,12 @@ import java.util.List;
 @Repository
 public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> {
 
-    // Busca fila geral (Recepção/Triagem) ordenada por hora de chegada
-    List<Agendamento> findByDataAndStatusOrderByHoraAsc(LocalDate data, StatusAgendamento status);
+    List<Agendamento> findByDataAndStatusOrderByPrioridadeDescHoraAsc(LocalDate data, StatusAgendamento status);
 
-    // Busca fila específica de um médico (caso queira filtrar)
-    List<Agendamento> findByMedicoIdAndDataAndStatus(Long medicoId, LocalDate data, StatusAgendamento status);
+    // MÉTODO QUE VOCÊ VAI USAR AGORA
+    List<Agendamento> findByMedicoIdAndDataAndStatusOrderByPrioridadeDescHoraAsc(
+            Long medicoId, LocalDate data, StatusAgendamento status
+    );
+
+
 }
