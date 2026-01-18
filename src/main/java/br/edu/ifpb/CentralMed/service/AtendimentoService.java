@@ -2,14 +2,21 @@ package br.edu.ifpb.CentralMed.service;
 
 import br.edu.ifpb.CentralMed.dto.AgendamentoImediatoDTO;
 import br.edu.ifpb.CentralMed.dto.TriagemDTO;
-import br.edu.ifpb.CentralMed.model.*;
+import br.edu.ifpb.CentralMed.model.Agendamento;
+import br.edu.ifpb.CentralMed.model.Paciente;
+import br.edu.ifpb.CentralMed.model.Profissional;
+import br.edu.ifpb.CentralMed.model.Triagem;
 import br.edu.ifpb.CentralMed.model.enums.Prioridade;
 import br.edu.ifpb.CentralMed.model.enums.StatusAgendamento;
-import br.edu.ifpb.CentralMed.repository.*;
+import br.edu.ifpb.CentralMed.repository.AgendamentoRepository;
+import br.edu.ifpb.CentralMed.repository.PacienteRepository;
+import br.edu.ifpb.CentralMed.repository.ProfissionalRepository;
+import br.edu.ifpb.CentralMed.repository.TriagemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -20,62 +27,50 @@ public class AtendimentoService {
     @Autowired private PacienteRepository pacienteRepository;
     @Autowired private ProfissionalRepository profissionalRepository;
     @Autowired private TriagemRepository triagemRepository;
-    @Autowired private ConsultaRepository consultaRepository;
-
-    private static final int PRAZO_RETORNO_DIAS = 30;
+    // O repository do painel foi removido daqui
 
     public Agendamento criarAgendamentoFuturo(Agendamento ag) {
-        if (ag.getPaciente() != null && ag.getMedico() != null) {
-            boolean isRetorno = verificarSeERetorno(ag.getPaciente().getId(), ag.getMedico().getId());
-            ag.setRetorno(isRetorno);
-        }
         ag.setStatus(StatusAgendamento.AGENDADO);
         return agendamentoRepository.save(ag);
     }
 
     public Agendamento criarAtendimentoImediato(AgendamentoImediatoDTO dto) {
-        Paciente p = pacienteRepository.findById(dto.getPacienteId()).orElseThrow();
+        Paciente p = pacienteRepository.findById(dto.getPacienteId())
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado"));
         Profissional m = null;
-        if(dto.getMedicoId() != null) {
+        if (dto.getMedicoId() != null) {
             m = profissionalRepository.findById(dto.getMedicoId()).orElse(null);
         }
-
         Agendamento ag = new Agendamento();
         ag.setPaciente(p);
         ag.setMedico(m);
         ag.setData(LocalDate.now());
         ag.setHora(LocalTime.now());
         ag.setStatus(StatusAgendamento.AGUARDANDO_TRIAGEM);
-        ag.setSenhaPainel("SENHA-" + System.currentTimeMillis() % 1000);
-
+        ag.setSenhaPainel("S-" + (agendamentoRepository.count() + 1));
         if (dto.getPrioridade() != null) {
             ag.setPrioridade(Prioridade.valueOf(dto.getPrioridade()));
         }
-
-        if (ag.getPaciente() != null && ag.getMedico() != null) {
-            boolean isRetorno = verificarSeERetorno(ag.getPaciente().getId(), ag.getMedico().getId());
-            ag.setRetorno(isRetorno);
-        }
-
         return agendamentoRepository.save(ag);
     }
 
     public Agendamento realizarCheckInAgendado(Long id) {
         Agendamento ag = agendamentoRepository.findById(id).orElseThrow();
         ag.setStatus(StatusAgendamento.AGUARDANDO_TRIAGEM);
-        ag.setSenhaPainel("SENHA-" + ag.getId());
+        if (ag.getSenhaPainel() == null || ag.getSenhaPainel().isEmpty()) {
+            ag.setSenhaPainel("S-" + id);
+        }
         return agendamentoRepository.save(ag);
     }
 
     public void cancelarAgendamento(Long id) {
-        Agendamento ag = agendamentoRepository.findById(id).orElseThrow();
-        ag.setStatus(StatusAgendamento.CANCELADO);
-        agendamentoRepository.save(ag);
+        agendamentoRepository.findById(id).ifPresent(ag -> {
+            ag.setStatus(StatusAgendamento.CANCELADO);
+            agendamentoRepository.save(ag);
+        });
     }
 
-    public Agendamento chamarPacientePainel(Long id) {
-        return agendamentoRepository.findById(id).orElseThrow();
-    }
+    // O MÉTODO chamarPacientePainel FOI REMOVIDO DESTA CLASSE
 
     public Paciente atualizarPaciente(Long id, Paciente dadosNovos) {
         Paciente pacienteExistente = pacienteRepository.findById(id)
@@ -88,42 +83,30 @@ public class AtendimentoService {
         return pacienteRepository.save(pacienteExistente);
     }
 
-    // --- O RETORNO QUE ESTAVA FALTANDO ERA DESTE MÉTODO ---
+    @Transactional
     public Triagem realizarTriagem(Long agendamentoId, TriagemDTO dto) {
-        Agendamento ag = agendamentoRepository.findById(agendamentoId).orElseThrow();
-        Profissional enf = profissionalRepository.findById(dto.getEnfermeiroId()).orElseThrow();
+        Agendamento agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado para triagem"));
+        Profissional enfermeiro = profissionalRepository.findById(dto.getEnfermeiroId())
+                .orElseThrow(() -> new RuntimeException("Profissional (Enfermeiro) não encontrado"));
 
-        Triagem t = new Triagem();
-        t.setPeso(dto.getPeso());
-        t.setAltura(dto.getAltura());
-        t.setPressao(dto.getPressao());
-        t.setTemperatura(dto.getTemperatura());
-        t.setSaturacao(dto.getSaturacao());
-        t.setObservacoes(dto.getObservacoes());
-        t.setAgendamento(ag);
-        t.setEnfermeiro(enf);
+        Triagem triagem = new Triagem();
+        triagem.setPeso(dto.getPeso());
+        triagem.setAltura(dto.getAltura());
+        triagem.setPressao(dto.getPressao());
+        triagem.setTemperatura(dto.getTemperatura());
+        triagem.setSaturacao(dto.getSaturacao());
+        triagem.setObservacoes(dto.getObservacoes());
+        triagem.setAgendamento(agendamento);
+        triagem.setEnfermeiro(enfermeiro);
 
-        ag.setStatus(StatusAgendamento.AGUARDANDO_CONSULTA);
-        agendamentoRepository.save(ag);
+        agendamento.setStatus(StatusAgendamento.AGUARDANDO_CONSULTA);
+        agendamentoRepository.save(agendamento);
 
-        return triagemRepository.save(t); // Retorno estava faltando
+        return triagemRepository.save(triagem);
     }
 
     public List<Agendamento> listarFila(StatusAgendamento status) {
         return agendamentoRepository.findByDataAndStatusOrderByPrioridadeDescHoraAsc(LocalDate.now(), status);
-    }
-
-    private boolean verificarSeERetorno(Long pacienteId, Long medicoId) {
-        if (pacienteId == null || medicoId == null) return false;
-
-        List<Consulta> ultimasConsultas = consultaRepository
-                .findUltimaConsultaPorPacienteEMedico(pacienteId, medicoId);
-
-        if (ultimasConsultas.isEmpty()) return false;
-
-        Consulta ultimaConsulta = ultimasConsultas.get(0);
-        LocalDateTime dataUltimaConsulta = ultimaConsulta.getDataHoraInicio();
-
-        return dataUltimaConsulta.plusDays(PRAZO_RETORNO_DIAS).isAfter(LocalDateTime.now());
     }
 }

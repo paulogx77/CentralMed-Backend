@@ -10,23 +10,21 @@ import java.time.LocalTime;
 @Data
 @Entity
 public class Agendamento {
-
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private LocalDate data;
     private LocalTime hora;
-    @Enumerated(EnumType.STRING) private StatusAgendamento status;
+    @Enumerated(EnumType.STRING)
+    private StatusAgendamento status;
     private String senhaPainel;
+
+
+    @Enumerated(EnumType.ORDINAL)
+    private Prioridade prioridade = Prioridade.NORMAL;
 
     @ManyToOne @JoinColumn(name = "paciente_id")
     private Paciente paciente;
 
     @ManyToOne @JoinColumn(name = "profissional_id")
     private Profissional medico;
-
-    @Enumerated(EnumType.ORDINAL)
-    private Prioridade prioridade = Prioridade.NORMAL;
-
-    private boolean isRetorno = false;
-
 }

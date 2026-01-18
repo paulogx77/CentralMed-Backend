@@ -23,8 +23,9 @@ public class MedicoService {
     @Autowired private TriagemRepository triagemRepository;
     @Autowired private GuiaConsultaRepository guiaRepository;
     @Autowired private ConvenioRepository convenioRepository;
-    @Autowired private TabelaPrecosRepository tabelaPrecosRepository;
-    @Autowired private ProcedimentoTussRepository procedimentoTussRepository;
+    @Autowired private LoteInsumoRepository loteInsumoRepository;
+    @Autowired private ConsumoInsumoRepository consumoInsumoRepository;
+
 
     public Triagem buscarDadosTriagem(Long agendamentoId) {
         return triagemRepository.findByAgendamentoId(agendamentoId);
@@ -47,7 +48,7 @@ public class MedicoService {
     public Consulta finalizarConsulta(Long consultaId, FinalizarConsultaDTO dto) {
         Consulta c = consultaRepository.findById(consultaId)
                 .orElseThrow(() -> new RuntimeException("Consulta não encontrada"));
-        
+
         c.setAnamnese(dto.getAnamnese());
         c.setDiagnosticoCid10(dto.getDiagnosticoCid10());
         c.setPrescricao(dto.getPrescricao());
@@ -57,63 +58,70 @@ public class MedicoService {
         agendamentoRepository.save(c.getAgendamento());
 
         Paciente paciente = c.getAgendamento().getPaciente();
-        
-        // Se for paciente de convênio...
-        if (paciente.getConvenio() != null && !paciente.getConvenio().equalsIgnoreCase("Particular")) {
-            convenioRepository.findByNome(paciente.getConvenio()).ifPresent(convenio -> {
-                
-                // --- INÍCIO DA MUDANÇA (LÓGICA DO VALOR) ---
-                
-                // Supõe que o procedimento é sempre "Consulta" (ID 1), por enquanto.
-                // No futuro, o DTO da finalização teria que trazer o código do procedimento.
-                final Long ID_PROCEDIMENTO_CONSULTA = 1L;
+        String nomeConvenio = paciente.getConvenio();
 
-                // Busca o valor específico para esta combinação de convênio e procedimento.
-                BigDecimal valorDaConsulta = tabelaPrecosRepository
-                        .findByConvenioIdAndProcedimentoId(convenio.getId(), ID_PROCEDIMENTO_CONSULTA)
-                        .map(TabelaPrecos::getValor) // Se achar o preço, pega o valor
-                        .orElse(BigDecimal.ZERO); // Se não houver preço cadastrado, zera (segurança).
-                
-                // ------------------ FIM DA MUDANÇA ------------------
-                
+        if (nomeConvenio != null && !nomeConvenio.equalsIgnoreCase("Particular")) {
+            // Busca o objeto Convenio a partir do nome
+            convenioRepository.findByNome(nomeConvenio).ifPresent(convenioObjeto -> {
                 GuiaConsulta guia = new GuiaConsulta();
                 guia.setConsulta(c);
-                guia.setConvenio(convenio);
                 guia.setNumeroGuia("G" + LocalDate.now().getYear() + "-" + c.getId());
                 guia.setDataEmissao(LocalDate.now());
                 guia.setStatus(StatusGuia.ABERTA);
-                
-                guia.setValorConsulta(valorDaConsulta); // <-- USA O VALOR DINÂMICO
-                
+
+                // Usando valor fixo até a Tabela de Preços ser implementada
+                guia.setValorConsulta(new BigDecimal("120.00"));
+
                 guiaRepository.save(guia);
             });
         }
-        
+
         return consultaRepository.save(c);
     }
 
+    // --- MÉTODOS PARA AS FILAS DO MÉDICO ---
+
     public List<Agendamento> listarFilaDoMedico(Long medicoId) {
         return agendamentoRepository.findByMedicoIdAndDataAndStatusOrderByPrioridadeDescHoraAsc(
-                medicoId,
-                LocalDate.now(),
-                StatusAgendamento.AGUARDANDO_CONSULTA
-        );
+                medicoId, LocalDate.now(), StatusAgendamento.AGUARDANDO_CONSULTA);
     }
 
+    public List<Agendamento> listarFilaGeral() {
+        return agendamentoRepository.findByMedicoIdIsNullAndDataAndStatusOrderByPrioridadeDescHoraAsc(
+                LocalDate.now(), StatusAgendamento.AGUARDANDO_CONSULTA);
+    }
+
+    public List<Agendamento> listarTodasAsFilasDirecionadas() {
+        return agendamentoRepository.findByMedicoIdIsNotNullAndDataAndStatusOrderByPrioridadeDescHoraAsc(
+                LocalDate.now(), StatusAgendamento.AGUARDANDO_CONSULTA);
+    }
+
+    @Transactional
+    public Agendamento atribuirPacienteDaFilaGeral(Long agendamentoId, Profissional medico) {
+        Agendamento agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado na fila geral"));
+
+        if (agendamento.getMedico() != null) {
+            throw new RuntimeException("Paciente já foi atribuído.");
+        }
+
+        agendamento.setMedico(medico);
+        return agendamentoRepository.save(agendamento);
+    }
+
+    // --- OUTROS MÉTODOS ---
+
     public List<Consulta> getHistoricoPaciente(Long pacienteId) {
-    return consultaRepository.findAll().stream()
-            .filter(c -> c.getAgendamento() != null &&
-                         c.getAgendamento().getPaciente() != null &&
-                         c.getAgendamento().getPaciente().getId().equals(pacienteId))
-            // Opcional: ordenar da mais recente para a mais antiga
-            .sorted((c1, c2) -> c2.getDataHoraInicio().compareTo(c1.getDataHoraInicio()))
-            .collect(Collectors.toList());
-}
+        return consultaRepository.findAll().stream()
+                .filter(c -> c.getAgendamento() != null && c.getAgendamento().getPaciente() != null && c.getAgendamento().getPaciente().getId().equals(pacienteId))
+                .sorted((c1, c2) -> c2.getDataHoraInicio().compareTo(c1.getDataHoraInicio()))
+                .collect(Collectors.toList());
+    }
 
     public String gerarTextoAtestado(Long consultaId, Integer diasAfastamento) {
         Consulta c = consultaRepository.findById(consultaId)
                 .orElseThrow(() -> new RuntimeException("Consulta não encontrada"));
         String nomePaciente = c.getAgendamento().getPaciente().getNome();
-        return "Atesto que o paciente " + nomePaciente + " necessita de " + diasAfastamento + " dias de repouso.";
+        return "Atesto, para os devidos fins, que o(a) paciente " + nomePaciente + " necessita de " + diasAfastamento + " dias de repouso por motivos de saúde.";
     }
 }

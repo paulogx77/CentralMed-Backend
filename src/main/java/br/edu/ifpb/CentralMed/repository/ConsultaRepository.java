@@ -33,5 +33,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
     List<Consulta> findUltimaConsultaPorPacienteEMedico(
             @Param("pacienteId") Long pacienteId,
             @Param("medicoId") Long medicoId);
-    // ----------------------------------------------
+
+
+
 }

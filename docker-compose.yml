@@ -37,22 +37,22 @@ services:
       - centralmed-net
   # -------------------------------
 
-  api:
-    build: .
-    container_name: centralmed-api
-    restart: on-failure
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/centralmed_db
-      SPRING_DATASOURCE_USERNAME: centralmed_user
-      SPRING_DATASOURCE_PASSWORD: centralmed_password
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - centralmed-net
+#  api:
+#    build: .
+#    container_name: centralmed-api
+#    restart: on-failure
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/centralmed_db
+#      SPRING_DATASOURCE_USERNAME: centralmed_user
+#      SPRING_DATASOURCE_PASSWORD: centralmed_password
+#      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    networks:
+#      - centralmed-net
 
 volumes:
   postgres_data:
