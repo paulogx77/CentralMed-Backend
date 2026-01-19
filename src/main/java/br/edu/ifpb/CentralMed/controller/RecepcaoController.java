@@ -1,8 +1,10 @@
 package br.edu.ifpb.CentralMed.controller;
 
 import br.edu.ifpb.CentralMed.dto.AgendamentoImediatoDTO;
+import br.edu.ifpb.CentralMed.dto.PacienteDTO;
 import br.edu.ifpb.CentralMed.model.*;
 import br.edu.ifpb.CentralMed.model.enums.StatusAgendamento;
+import br.edu.ifpb.CentralMed.repository.ConvenioRepository;
 import br.edu.ifpb.CentralMed.repository.PacienteRepository;
 import br.edu.ifpb.CentralMed.service.AtendimentoService;
 import br.edu.ifpb.CentralMed.service.PainelService; // <--- IMPORTANTE
@@ -18,11 +20,30 @@ public class RecepcaoController {
     @Autowired private AtendimentoService service;
     @Autowired private PacienteRepository pacienteRepo;
     @Autowired private PainelService painelService; // <--- INJEÇÃO DO SERVIÇO
-
+    @Autowired private ConvenioRepository convenioRepository; // Importe e injete
+    @Autowired private PacienteRepository pacienteRepository;
 
     @PostMapping("/pacientes")
-    public Paciente criarPaciente(@RequestBody Paciente p) {
-        return pacienteRepo.save(p);
+    public Paciente criarPaciente(@RequestBody PacienteDTO dto) {
+
+        Paciente novoPaciente = new Paciente();
+        novoPaciente.setNome(dto.getNome());
+        novoPaciente.setCpf(dto.getCpf());
+        novoPaciente.setDataNasc(dto.getDataNasc());
+        novoPaciente.setAlergiasComorbidades(dto.getAlergiasComorbidades());
+
+        // --- GARANTA QUE ESTA LINHA EXISTA ---
+        novoPaciente.setEmail(dto.getEmail());
+        // -------------------------------------
+
+        // Lógica do Convênio
+        if (dto.getConvenio() != null && !dto.getConvenio().equalsIgnoreCase("Particular")) {
+            Convenio convenio = convenioRepository.findByNome(dto.getConvenio())
+                    .orElseThrow(() -> new RuntimeException("Convênio não encontrado: " + dto.getConvenio()));
+            novoPaciente.setConvenio(convenio);
+        } // Se for particular, o campo 'convenio' do paciente já é null por padrão
+
+        return pacienteRepository.save(novoPaciente);
     }
 
     @GetMapping("/pacientes")

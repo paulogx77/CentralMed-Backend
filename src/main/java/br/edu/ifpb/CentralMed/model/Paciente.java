@@ -22,9 +22,9 @@ public class Paciente {
     @Column(columnDefinition = "TEXT")
     private String alergiasComorbidades;
 
-    // --- CORREÇÃO ESTÁ AQUI ---
-    // Deve ser uma String para corresponder ao que o formulário do Front envia.
-    // A lógica para vincular ao objeto Convenio é feita no MedicoService depois.
-    private String convenio;
-    // -------------------------
+    @ManyToOne
+    @JoinColumn(name = "convenio_id")
+    private Convenio convenio;
+
+    private String email;
 }

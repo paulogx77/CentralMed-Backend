@@ -34,26 +34,22 @@ public class SecurityConfigurations {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
 
-                        // 1. ROTAS PÚBLICAS
+                        // 1. ROTAS PÚBLICAS (Sempre no topo)
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/api/painel/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
-                        // MUDE PARA ISSO ( CORRETO ):
-                        .requestMatchers("/api/recepcao/painel/chamar/**")
-                        .hasAnyAuthority("ROLE_RECEPCIONISTA", "ROLE_RECEPCAO", "ROLE_MEDICO", "ROLE_ADMIN")
+                        // --- ADICIONE A REGRA AQUI ---
+                        // Libera todas as rotas de Recepção para qualquer usuário logado
+                        .requestMatchers("/api/recepcao/**").authenticated()
 
-                        // 2. EXCEÇÕES E ROTAS ESPECÍFICAS
+                        .requestMatchers(HttpMethod.GET, "/api/admin/convenios").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/admin/profissionais/medicos").authenticated()
-                        .requestMatchers("/api/triagem/**").authenticated()
 
-                        // 3. ROTAS DE ADMIN
-                        // IMPORTANTE: Aqui também troquei hasRole por hasAuthority para evitar o mesmo erro no futuro
-                        .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
-                        .requestMatchers("/api/faturamento/**").hasAuthority("ADMIN")
-                        .requestMatchers("/api/notas-fiscais/**").hasAuthority("ADMIN")
+                        .requestMatchers("/api/faturamento/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // 4. REGRA GERAL FINAL
+                        // 4. REGRA GERAL (O resto do mundo)
+                        // Todas as outras rotas da API só precisam de autenticação.
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
@@ -74,8 +70,8 @@ public class SecurityConfigurations {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:3000"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "TRACE", "CONNECT"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "x-requested-with"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

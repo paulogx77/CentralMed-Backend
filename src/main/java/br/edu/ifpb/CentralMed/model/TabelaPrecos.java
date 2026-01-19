@@ -6,18 +6,22 @@ import java.math.BigDecimal;
 
 @Data
 @Entity
+// Garante que não haverá duas entradas para a mesma combinação
+@Table(uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"convenio_id", "procedimento_id"})
+})
 public class TabelaPrecos {
-
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "convenio_id")
+    @JoinColumn(name = "convenio_id", nullable = false)
     private Convenio convenio;
 
     @ManyToOne
-    @JoinColumn(name = "procedimento_id")
+    @JoinColumn(name = "procedimento_id", nullable = false)
     private ProcedimentoTuss procedimento;
 
-    private BigDecimal valor; // Ex: 120.00
+    @Column(nullable = false)
+    private BigDecimal valor;
 }

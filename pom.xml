@@ -69,6 +69,7 @@
             <optional>true</optional>
         </dependency>
 
+
         <!-- Testes (Geral) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

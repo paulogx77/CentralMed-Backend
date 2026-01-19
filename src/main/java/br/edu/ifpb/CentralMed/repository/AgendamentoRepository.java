@@ -41,4 +41,6 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     List<Agendamento> findByMedicoIdIsNotNullAndDataAndStatusOrderByPrioridadeDescHoraAsc(
             LocalDate data, StatusAgendamento status
     );
+
+    List<Agendamento> findByDataBetween(LocalDate inicio, LocalDate fim);
 }

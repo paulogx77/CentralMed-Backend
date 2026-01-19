@@ -11,6 +11,7 @@ import br.edu.ifpb.CentralMed.repository.TabelaPrecosRepository;
 import br.edu.ifpb.CentralMed.service.AdminService;
 import br.edu.ifpb.CentralMed.service.ConvenioService;
 import br.edu.ifpb.CentralMed.service.ProcedimentoTussService; // Estava faltando
+import br.edu.ifpb.CentralMed.service.TabelaPrecosService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -109,5 +110,19 @@ public class AdminController {
         // Lógica para filtrar no Service
         // return convenioService.getTabelaDePrecos(convenioId);
         return new ArrayList<>(); // Por enquanto, até criarmos a tela
+    }
+
+    // Em AdminController.java
+    @Autowired private TabelaPrecosService tabelaPrecosService;
+
+    // --- TABELA DE PREÇOS ---
+    @PostMapping("/precos")
+    public TabelaPrecos criarPreco(@RequestBody TabelaPrecos preco) {
+        return tabelaPrecosService.salvarPreco(preco);
+    }
+
+    @GetMapping("/precos")
+    public List<TabelaPrecos> listarPrecos() {
+        return tabelaPrecosService.listarPrecos();
     }
 }

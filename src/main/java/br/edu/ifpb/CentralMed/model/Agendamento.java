@@ -27,4 +27,5 @@ public class Agendamento {
 
     @ManyToOne @JoinColumn(name = "profissional_id")
     private Profissional medico;
+
 }
