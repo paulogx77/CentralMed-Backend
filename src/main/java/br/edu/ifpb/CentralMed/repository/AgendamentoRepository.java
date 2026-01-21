@@ -34,13 +34,14 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             LocalDate data, StatusAgendamento status
     );
 
-    /**
-     * Busca para o Admin: todos os pacientes em espera que FORAM direcionados a algum médico.
-     * `MedicoIdIsNotNull` é a chave.
-     */
+
+
     List<Agendamento> findByMedicoIdIsNotNullAndDataAndStatusOrderByPrioridadeDescHoraAsc(
             LocalDate data, StatusAgendamento status
     );
 
     List<Agendamento> findByDataBetween(LocalDate inicio, LocalDate fim);
+
+    List<Agendamento> findByDataAndMedicoId(LocalDate data, Long medicoId);
+
 }

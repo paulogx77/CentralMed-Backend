@@ -1,5 +1,6 @@
 package br.edu.ifpb.CentralMed.service;
 
+import br.edu.ifpb.CentralMed.dto.AgendamentoFuturoDTO;
 import br.edu.ifpb.CentralMed.dto.AgendamentoImediatoDTO;
 import br.edu.ifpb.CentralMed.dto.TriagemDTO;
 import br.edu.ifpb.CentralMed.model.*;
@@ -22,22 +23,51 @@ public class AtendimentoService {
 
     @Autowired private AgendamentoRepository agendamentoRepository;
     @Autowired private PacienteRepository pacienteRepository;
+
+    // Usamos ProfissionalRepository para buscar médicos e enfermeiros
     @Autowired private ProfissionalRepository profissionalRepository;
+
     @Autowired private TriagemRepository triagemRepository;
 
-    public Agendamento criarAgendamentoFuturo(Agendamento agendamento) {
-        agendamento.setStatus(StatusAgendamento.AGENDADO);
-        // A chamada ao notificationService foi removida
+    public Agendamento criarAgendamentoFuturo(AgendamentoFuturoDTO dto) {
+        // 1. Busca o Paciente (Obrigatório)
+        Paciente paciente = pacienteRepository.findById(dto.pacienteId())
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado"));
+
+        // 2. Busca o Médico (OPCIONAL - Usando a entidade Profissional)
+        Profissional medico = null; // Tipo agora é Profissional
+
+        if (dto.medicoId() != null) {
+            medico = profissionalRepository.findById(dto.medicoId())
+                    .orElseThrow(() -> new RuntimeException("Profissional (Médico) não encontrado"));
+
+            // Opcional: Se quiser garantir que o ID passado é realmente de um médico:
+            // if (medico.getCargo() != Cargo.MEDICO) throw ...
+        }
+
+        // 3. Cria o agendamento
+        Agendamento agendamento = new Agendamento();
+        agendamento.setData(LocalDate.parse(dto.data()));
+        agendamento.setHora(LocalTime.parse(dto.hora()));
+        agendamento.setPaciente(paciente);
+
+        // Certifique-se que na classe Agendamento, o campo 'medico' é do tipo Profissional
+        agendamento.setMedico(medico);
+
+        agendamento.setStatus(StatusAgendamento.AGUARDANDO_TRIAGEM);
+
         return agendamentoRepository.save(agendamento);
     }
 
     public Agendamento criarAtendimentoImediato(AgendamentoImediatoDTO dto) {
         Paciente p = pacienteRepository.findById(dto.getPacienteId())
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado"));
+
         Profissional m = null;
         if (dto.getMedicoId() != null) {
             m = profissionalRepository.findById(dto.getMedicoId()).orElse(null);
         }
+
         Agendamento ag = new Agendamento();
         ag.setPaciente(p);
         ag.setMedico(m);
@@ -45,18 +75,18 @@ public class AtendimentoService {
         ag.setHora(LocalTime.now());
         ag.setStatus(StatusAgendamento.AGUARDANDO_TRIAGEM);
         ag.setSenhaPainel("S-" + (agendamentoRepository.count() + 1));
+
         if (dto.getPrioridade() != null) {
             ag.setPrioridade(Prioridade.valueOf(dto.getPrioridade()));
         }
 
-        // A chamada ao notificationService foi removida
         return agendamentoRepository.save(ag);
     }
 
-
-
     public Agendamento realizarCheckInAgendado(Long id) {
-        Agendamento ag = agendamentoRepository.findById(id).orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+        Agendamento ag = agendamentoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+
         ag.setStatus(StatusAgendamento.AGUARDANDO_TRIAGEM);
         if (ag.getSenhaPainel() == null || ag.getSenhaPainel().isEmpty()) {
             ag.setSenhaPainel("S-" + id);
@@ -72,19 +102,26 @@ public class AtendimentoService {
     }
 
     public Paciente atualizarPaciente(Long id, Paciente dadosNovos) {
-        Paciente pacienteExistente = pacienteRepository.findById(id).orElseThrow(() -> new RuntimeException("Paciente não encontrado"));
+        Paciente pacienteExistente = pacienteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado"));
+
         pacienteExistente.setNome(dadosNovos.getNome());
         pacienteExistente.setCpf(dadosNovos.getCpf());
         pacienteExistente.setDataNasc(dadosNovos.getDataNasc());
         pacienteExistente.setConvenio(dadosNovos.getConvenio());
         pacienteExistente.setAlergiasComorbidades(dadosNovos.getAlergiasComorbidades());
+
         return pacienteRepository.save(pacienteExistente);
     }
 
     @Transactional
     public Triagem realizarTriagem(Long agendamentoId, TriagemDTO dto) {
-        Agendamento agendamento = agendamentoRepository.findById(agendamentoId).orElseThrow(() -> new RuntimeException("Agendamento não encontrado para triagem"));
-        Profissional enfermeiro = profissionalRepository.findById(dto.getEnfermeiroId()).orElseThrow(() -> new RuntimeException("Profissional (Enfermeiro) não encontrado"));
+        Agendamento agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado para triagem"));
+
+        Profissional enfermeiro = profissionalRepository.findById(dto.getEnfermeiroId())
+                .orElseThrow(() -> new RuntimeException("Profissional (Enfermeiro) não encontrado"));
+
         Triagem triagem = new Triagem();
         triagem.setPeso(dto.getPeso());
         triagem.setAltura(dto.getAltura());
@@ -93,7 +130,8 @@ public class AtendimentoService {
         triagem.setSaturacao(dto.getSaturacao());
         triagem.setObservacoes(dto.getObservacoes());
         triagem.setAgendamento(agendamento);
-        triagem.setEnfermeiro(enfermeiro);
+        triagem.setEnfermeiro(enfermeiro); // Certifique-se que Triagem aceita Profissional
+
         agendamento.setStatus(StatusAgendamento.AGUARDANDO_CONSULTA);
         agendamentoRepository.save(agendamento);
         return triagemRepository.save(triagem);

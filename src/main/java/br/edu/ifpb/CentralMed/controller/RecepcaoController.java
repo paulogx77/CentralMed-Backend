@@ -1,5 +1,6 @@
 package br.edu.ifpb.CentralMed.controller;
 
+import br.edu.ifpb.CentralMed.dto.AgendamentoFuturoDTO;
 import br.edu.ifpb.CentralMed.dto.AgendamentoImediatoDTO;
 import br.edu.ifpb.CentralMed.dto.PacienteDTO;
 import br.edu.ifpb.CentralMed.model.*;
@@ -7,11 +8,16 @@ import br.edu.ifpb.CentralMed.model.enums.StatusAgendamento;
 import br.edu.ifpb.CentralMed.repository.ConvenioRepository;
 import br.edu.ifpb.CentralMed.repository.PacienteRepository;
 import br.edu.ifpb.CentralMed.service.AtendimentoService;
-import br.edu.ifpb.CentralMed.service.PainelService; // <--- IMPORTANTE
+import br.edu.ifpb.CentralMed.service.PainelService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import br.edu.ifpb.CentralMed.repository.AgendamentoRepository;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/recepcao")
@@ -19,29 +25,27 @@ public class RecepcaoController {
 
     @Autowired private AtendimentoService service;
     @Autowired private PacienteRepository pacienteRepo;
-    @Autowired private PainelService painelService; // <--- INJEÇÃO DO SERVIÇO
-    @Autowired private ConvenioRepository convenioRepository; // Importe e injete
+    @Autowired private AgendamentoRepository agendamentoRepo;
+    @Autowired private PainelService painelService;
+    @Autowired private ConvenioRepository convenioRepository;
     @Autowired private PacienteRepository pacienteRepository;
+
+    // --- PACIENTES ---
 
     @PostMapping("/pacientes")
     public Paciente criarPaciente(@RequestBody PacienteDTO dto) {
-
         Paciente novoPaciente = new Paciente();
         novoPaciente.setNome(dto.getNome());
         novoPaciente.setCpf(dto.getCpf());
         novoPaciente.setDataNasc(dto.getDataNasc());
         novoPaciente.setAlergiasComorbidades(dto.getAlergiasComorbidades());
-
-        // --- GARANTA QUE ESTA LINHA EXISTA ---
         novoPaciente.setEmail(dto.getEmail());
-        // -------------------------------------
 
-        // Lógica do Convênio
         if (dto.getConvenio() != null && !dto.getConvenio().equalsIgnoreCase("Particular")) {
             Convenio convenio = convenioRepository.findByNome(dto.getConvenio())
                     .orElseThrow(() -> new RuntimeException("Convênio não encontrado: " + dto.getConvenio()));
             novoPaciente.setConvenio(convenio);
-        } // Se for particular, o campo 'convenio' do paciente já é null por padrão
+        }
 
         return pacienteRepository.save(novoPaciente);
     }
@@ -57,9 +61,13 @@ public class RecepcaoController {
     }
 
     // --- GESTÃO DE AGENDAMENTOS ---
+
+    // CORREÇÃO AQUI: Unifiquei os métodos.
+    // O URL é "/agendamentos" (para bater com o front)
+    // O parâmetro é "AgendamentoFuturoDTO" (para bater com o service)
     @PostMapping("/agendamentos")
-    public Agendamento agendarFuturo(@RequestBody Agendamento a) {
-        return service.criarAgendamentoFuturo(a);
+    public Agendamento agendarFuturo(@RequestBody AgendamentoFuturoDTO dto) {
+        return service.criarAgendamentoFuturo(dto);
     }
 
     @PostMapping("/agendamentos/{id}/checkin")
@@ -85,15 +93,17 @@ public class RecepcaoController {
         return service.listarFila(StatusAgendamento.AGUARDANDO_TRIAGEM);
     }
 
-    // --- O MÉTODO QUE FALTAVA ---
-    // Esse é o endpoint que o seu React está chamando: /api/recepcao/painel/chamar/{id}
     @PostMapping("/painel/chamar/{id}")
     public ResponseEntity<Void> chamarNoPainel(@PathVariable Long id, @RequestParam(required = false) String local) {
-        // Se vier o local na URL (Front manda ?local=...), usa ele. Se não, usa "Recepção".
         String localChamada = (local != null && !local.isEmpty()) ? local : "Recepção";
-
         painelService.registrarChamada(id, localChamada);
-
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/agendamentos/horarios-ocupados")
+    public List<LocalTime> getHorariosOcupados(@RequestParam LocalDate data, @RequestParam Long medicoId) {
+        return agendamentoRepo.findByDataAndMedicoId(data, medicoId).stream()
+                .map(Agendamento::getHora)
+                .collect(Collectors.toList());
     }
 }
