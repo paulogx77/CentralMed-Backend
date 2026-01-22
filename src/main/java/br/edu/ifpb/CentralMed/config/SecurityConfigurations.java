@@ -38,32 +38,31 @@ public class SecurityConfigurations {
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers("/api/painel/**").permitAll()
 
-                        // 2. CORREÇÃO: REGRA EXPLÍCITA PARA O ENDPOINT COM PROBLEMA
-                        // Garante que POST em /agendamentos seja aceito para RECEPCAO e ADMIN
+
                         .requestMatchers(HttpMethod.POST, "/api/recepcao/agendamentos").hasAnyRole("RECEPCAO", "ADMIN")
                         .requestMatchers("/api/compras/**").hasRole("ADMIN")
-                        // 3. ROTAS GERAIS DE RECEPÇÃO
-                        // Mudei de .authenticated() para .hasAnyRole para ser mais seguro e garantir o match correto
+
+
                         .requestMatchers("/api/recepcao/**").hasAnyRole("RECEPCAO", "ADMIN")
 
                         .requestMatchers("/api/fornecedores/**").hasRole("ADMIN")
 
 
-                        // 4. ROTAS ESPECÍFICAS
+
                         .requestMatchers("/api/triagem/**").authenticated()
                         .requestMatchers("/api/agendamentos/horarios-ocupados").authenticated()
                         .requestMatchers("/api/fornecedores/**").authenticated()
 
-                        // Rotas de leitura (GET)
+
                         .requestMatchers(HttpMethod.GET, "/api/admin/convenios").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/admin/profissionais/medicos").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/medico/fila-completa").authenticated()
 
-                        // 5. ROTAS EXCLUSIVAS DO ADMIN
+
                         .requestMatchers("/api/faturamento/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // 6. REGRA FINAL
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
