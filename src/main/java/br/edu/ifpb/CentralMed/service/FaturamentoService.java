@@ -1,7 +1,7 @@
 package br.edu.ifpb.CentralMed.service;
 
 import br.edu.ifpb.CentralMed.model.GuiaConsulta;
-import br.edu.ifpb.CentralMed.model.enums.StatusNfs;
+import br.edu.ifpb.CentralMed.model.enums.StatusGuia; // <--- Import correto
 import br.edu.ifpb.CentralMed.repository.GuiaConsultaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,7 +15,9 @@ public class FaturamentoService {
     private GuiaConsultaRepository guiaRepository;
 
     public List<GuiaConsulta> buscarGuiasAbertas() {
-        return guiaRepository.findByStatus(StatusNfs.StatusGuia.ABERTA);
+        // --- CORREÇÃO AQUI ---
+        // Buscando pelo enum StatusGuia diretamente
+        return guiaRepository.findByStatus(StatusGuia.ABERTA);
     }
 
     @Transactional
@@ -23,12 +25,13 @@ public class FaturamentoService {
         List<GuiaConsulta> guias = guiaRepository.findAllById(idsDasGuias);
 
         for (GuiaConsulta guia : guias) {
-            if (guia.getStatus() == StatusNfs.StatusGuia.ABERTA) {
-                guia.setStatus(StatusNfs.StatusGuia.FATURADA);
+            if (guia.getStatus() == StatusGuia.ABERTA) {
+                // --- CORREÇÃO AQUI ---
+                // Setando o enum StatusGuia diretamente
+                guia.setStatus(StatusGuia.FATURADA);
             }
         }
 
         guiaRepository.saveAll(guias);
-        // Lógica futura: Gerar o XML do Lote TISS aqui
     }
 }

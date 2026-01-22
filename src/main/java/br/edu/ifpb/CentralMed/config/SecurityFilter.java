@@ -9,7 +9,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -25,44 +24,36 @@ public class SecurityFilter extends OncePerRequestFilter {
     private ProfissionalRepository profissionalRepository;
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         var token = this.recuperarToken(request);
 
         if (token != null) {
-            // Valida o token e extrai o login
             var login = tokenService.validarToken(token);
 
-            // Se o login for válido, busca o usuário
             if (login != null && !login.isEmpty()) {
-
-                // Usa o método que retorna UserDetails para maior compatibilidade com Spring Security
                 profissionalRepository.findUserDetailsByUsuarioLogin(login).ifPresent(userDetails -> {
 
-                    // Cria a autenticação com o UserDetails (que contém as authorities)
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails,
-                                    null,
-                                    userDetails.getAuthorities()
-                            );
+                    // --- INICIO DO DEBUG (ISSO VAI SALVAR A PÁTRIA) ---
+                    System.out.println("--------------------------------------------------");
+                    System.out.println("QUEM ESTÁ TENTANDO ENTRAR?");
+                    System.out.println("Login: " + userDetails.getUsername());
+                    System.out.println("Permissões (Authorities): " + userDetails.getAuthorities());
+                    System.out.println("URL Tentada: " + request.getRequestURI());
+                    System.out.println("--------------------------------------------------");
+                    // --- FIM DO DEBUG ---
 
-                    // Coloca o usuário autenticado no contexto da requisição
+                    var authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 });
             }
         }
-
-        // Continua o fluxo para os próximos filtros do Spring
         filterChain.doFilter(request, response);
     }
 
     private String recuperarToken(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
+        var authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return null;
         }

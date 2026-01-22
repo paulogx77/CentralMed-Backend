@@ -5,4 +5,5 @@ import lombok.Data;
     private Long pacienteId;
     private Long medicoId;
     private String prioridade;
+
 }

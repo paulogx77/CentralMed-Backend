@@ -1,10 +1,9 @@
-
 package br.edu.ifpb.CentralMed.service;
 
 import br.edu.ifpb.CentralMed.dto.FinalizarConsultaDTO;
 import br.edu.ifpb.CentralMed.model.*;
 import br.edu.ifpb.CentralMed.model.enums.StatusAgendamento;
-import br.edu.ifpb.CentralMed.model.enums.StatusNfs;
+import br.edu.ifpb.CentralMed.model.enums.StatusGuia;
 import br.edu.ifpb.CentralMed.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,23 +20,20 @@ public class MedicoService {
 
     @Autowired private AgendamentoRepository agendamentoRepository;
     @Autowired private ConsultaRepository consultaRepository;
-    @Autowired private LoteInsumoRepository loteRepository;
     @Autowired private TriagemRepository triagemRepository;
     @Autowired private GuiaConsultaRepository guiaRepository;
+    @Autowired private ConvenioRepository convenioRepository;
+    @Autowired private ChamadaPainelRepository chamadaRepository; // Adicionado
 
-    // Método que estava faltando
     public Triagem buscarDadosTriagem(Long agendamentoId) {
         return triagemRepository.findByAgendamentoId(agendamentoId);
     }
 
     @Transactional
     public Consulta iniciarConsulta(Long agendamentoId) {
-        Agendamento ag = agendamentoRepository.findById(agendamentoId)
-                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
-
+        Agendamento ag = agendamentoRepository.findById(agendamentoId).orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
         ag.setStatus(StatusAgendamento.EM_ATENDIMENTO);
         agendamentoRepository.save(ag);
-
         Consulta c = new Consulta();
         c.setAgendamento(ag);
         c.setDataHoraInicio(LocalDateTime.now());
@@ -46,43 +42,58 @@ public class MedicoService {
 
     @Transactional
     public Consulta finalizarConsulta(Long consultaId, FinalizarConsultaDTO dto) {
-        Consulta c = consultaRepository.findById(consultaId)
-                .orElseThrow(() -> new RuntimeException("Consulta não encontrada"));
-
+        Consulta c = consultaRepository.findById(consultaId).orElseThrow(() -> new RuntimeException("Consulta não encontrada"));
         c.setAnamnese(dto.getAnamnese());
         c.setDiagnosticoCid10(dto.getDiagnosticoCid10());
         c.setPrescricao(dto.getPrescricao());
         c.setDataHoraFim(LocalDateTime.now());
-
-        if (dto.getInsumosConsumidos() != null && !dto.getInsumosConsumidos().isEmpty()) {
-            // (sua lógica de baixa de estoque)
-        }
-
         c.getAgendamento().setStatus(StatusAgendamento.FINALIZADO);
         agendamentoRepository.save(c.getAgendamento());
-
         Paciente paciente = c.getAgendamento().getPaciente();
-        if (paciente.getConvenio() != null) {
+        Convenio convenioDoPaciente = paciente.getConvenio();
+
+        if (convenioDoPaciente != null) {
             GuiaConsulta guia = new GuiaConsulta();
             guia.setConsulta(c);
-            guia.setNumeroGuia("G" + LocalDate.now().getYear() + "-" + c.getId());
-            guia.setDataEmissao(LocalDate.now());
-            guia.setStatus(StatusNfs.StatusGuia.ABERTA);
-            guia.setValorConsulta(new BigDecimal("120.00"));
+            // ... lógica de guia (ajustada para pegar de um valor fixo por agora)
+            guia.setValorConsulta(new BigDecimal("100.00")); // Valor temporário
+            guia.setStatus(StatusGuia.ABERTA);
             guiaRepository.save(guia);
         }
-
         return consultaRepository.save(c);
     }
 
+    // --- MÉTODOS NOVOS PARA A LÓGICA DE FILA ---
+
     public List<Agendamento> listarFilaDoMedico(Long medicoId) {
         return agendamentoRepository.findByMedicoIdAndDataAndStatusOrderByPrioridadeDescHoraAsc(
-                medicoId,
-                LocalDate.now(),
-                StatusAgendamento.AGUARDANDO_CONSULTA
-        );
+                medicoId, LocalDate.now(), StatusAgendamento.AGUARDANDO_CONSULTA);
     }
 
+    public List<Agendamento> listarFilaGeral() {
+        return agendamentoRepository.findByMedicoIdIsNullAndDataAndStatusOrderByPrioridadeDescHoraAsc(
+                LocalDate.now(), StatusAgendamento.AGUARDANDO_CONSULTA);
+    }
+
+    public List<Agendamento> listarTodasAsFilasDirecionadas() {
+        return agendamentoRepository.findByMedicoIdIsNotNullAndDataAndStatusOrderByPrioridadeDescHoraAsc(
+                LocalDate.now(), StatusAgendamento.AGUARDANDO_CONSULTA);
+    }
+
+    @Transactional
+    public Agendamento atribuirPacienteDaFilaGeral(Long agendamentoId, Profissional medico) {
+        Agendamento agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado na fila geral"));
+
+        if (agendamento.getMedico() != null) {
+            throw new RuntimeException("Paciente já foi atribuído a outro médico.");
+        }
+
+        agendamento.setMedico(medico);
+        return agendamentoRepository.save(agendamento);
+    }
+
+    // --- MÉTODOS RESTANTES ---
 
     public List<Consulta> getHistoricoPaciente(Long pacienteId) {
         return consultaRepository.findAll().stream()
@@ -90,12 +101,8 @@ public class MedicoService {
                 .collect(Collectors.toList());
     }
 
-    // Método que estava faltando
     public String gerarTextoAtestado(Long consultaId, Integer diasAfastamento) {
-        Consulta c = consultaRepository.findById(consultaId)
-                .orElseThrow(() -> new RuntimeException("Consulta não encontrada"));
-
-        String nomePaciente = c.getAgendamento().getPaciente().getNome();
-        return "Atesto que o paciente " + nomePaciente + " necessita de " + diasAfastamento + " dias de repouso.";
+        Consulta c = consultaRepository.findById(consultaId).orElseThrow(() -> new RuntimeException("Consulta não encontrada"));
+        return "Atesto que " + c.getAgendamento().getPaciente().getNome() + " precisa de " + diasAfastamento + " dias de repouso.";
     }
 }

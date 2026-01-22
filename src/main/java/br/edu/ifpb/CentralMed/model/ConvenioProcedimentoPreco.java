@@ -2,29 +2,22 @@ package br.edu.ifpb.CentralMed.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDate;
+import java.math.BigDecimal;
 
 @Data
 @Entity
-public class Paciente {
-
+public class ConvenioProcedimentoPreco {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private String nome;
-
-    @Column(unique = true)
-    private String cpf;
-
-    private LocalDate dataNasc;
-
-    @Column(columnDefinition = "TEXT")
-    private String alergiasComorbidades;
 
     @ManyToOne
     @JoinColumn(name = "convenio_id")
     private Convenio convenio;
 
-    private String email;
+    @ManyToOne
+    @JoinColumn(name = "procedimento_id")
+    private ProcedimentoTuss procedimento;
+
+    private BigDecimal valor; // O preço do procedimento para este convênio
 }

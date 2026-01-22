@@ -5,14 +5,18 @@ import br.edu.ifpb.CentralMed.model.Convenio;
 import br.edu.ifpb.CentralMed.model.EstoqueInsumos;
 import br.edu.ifpb.CentralMed.model.ProcedimentoTuss;
 import br.edu.ifpb.CentralMed.model.Profissional;
+import br.edu.ifpb.CentralMed.model.TabelaPrecos;
 import br.edu.ifpb.CentralMed.model.enums.PerfilUsuario;
+import br.edu.ifpb.CentralMed.repository.TabelaPrecosRepository;
 import br.edu.ifpb.CentralMed.service.AdminService;
 import br.edu.ifpb.CentralMed.service.ConvenioService;
 import br.edu.ifpb.CentralMed.service.ProcedimentoTussService; // Estava faltando
+import br.edu.ifpb.CentralMed.service.TabelaPrecosService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -22,24 +26,40 @@ public class AdminController {
     @Autowired private AdminService adminService;
     @Autowired private ConvenioService convenioService;
     @Autowired private ProcedimentoTussService procedimentoTussService;
-
-    // === PROFISSIONAIS ===
-
-    @PostMapping("/profissionais")
-    public Profissional cadastrarProfissional(@RequestBody Profissional profissional) {
-        return adminService.salvarProfissional(profissional);
-    }
+    @Autowired private TabelaPrecosRepository tabelaPrecosRepository;
+    
+    //PROFISSIONAIS//
 
     @GetMapping("/profissionais")
-    public List<Profissional> listarTodosProfissionais() { // Nome do método ficou mais claro
+    public List<Profissional> listarTodosProfissionais() {
         return adminService.listarTodos();
     }
-
+    
     @GetMapping("/profissionais/medicos")
     public List<Profissional> listarMedicos() {
         return adminService.listarPorPerfil(PerfilUsuario.MEDICO);
     }
 
+    // --- NOVO ENDPOINT ---
+    @GetMapping("/profissionais/{id}")
+    public ResponseEntity<Profissional> getProfissionalById(@PathVariable Long id) {
+        return adminService.findById(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+    
+    // --- NOVO ENDPOINT ---
+    @PutMapping("/profissionais/{id}")
+    public Profissional atualizarProfissional(@PathVariable Long id, @RequestBody Profissional profissional) {
+        return adminService.atualizarProfissional(id, profissional);
+    }
+    
+    // --- NOVO ENDPOINT ---
+    @DeleteMapping("/profissionais/{id}")
+    public ResponseEntity<Void> deletarProfissional(@PathVariable Long id) {
+        adminService.deletarProfissional(id);
+        return ResponseEntity.noContent().build();
+    }
     // === ESTOQUE ===
 
     @GetMapping("/estoque/alertas")
@@ -79,5 +99,30 @@ public class AdminController {
     @GetMapping("/procedimentos")
     public List<ProcedimentoTuss> listarProcedimentos() {
         return procedimentoTussService.listarTodos();
+    }
+
+    @PostMapping("/tabela-precos")
+    public TabelaPrecos definirPreco(@RequestBody TabelaPrecos preco) {
+        return tabelaPrecosRepository.save(preco);
+    }
+    @GetMapping("/tabela-precos/{convenioId}")
+    public List<TabelaPrecos> listarPrecosPorConvenio(@PathVariable Long convenioId){
+        // Lógica para filtrar no Service
+        // return convenioService.getTabelaDePrecos(convenioId);
+        return new ArrayList<>(); // Por enquanto, até criarmos a tela
+    }
+
+    // Em AdminController.java
+    @Autowired private TabelaPrecosService tabelaPrecosService;
+
+    // --- TABELA DE PREÇOS ---
+    @PostMapping("/precos")
+    public TabelaPrecos criarPreco(@RequestBody TabelaPrecos preco) {
+        return tabelaPrecosService.salvarPreco(preco);
+    }
+
+    @GetMapping("/precos")
+    public List<TabelaPrecos> listarPrecos() {
+        return tabelaPrecosService.listarPrecos();
     }
 }

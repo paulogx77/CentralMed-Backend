@@ -6,8 +6,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-@Repository
 public interface ConvenioRepository extends JpaRepository<Convenio, Long> {
-    // Busca um convênio pelo Registro ANS para evitar duplicatas
     Optional<Convenio> findByRegistroAns(String registroAns);
+    Optional<Convenio> findByNome(String nome); 
 }
+
